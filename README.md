@@ -13,7 +13,8 @@ TypeScript + Vite + HTML5 Canvas 2D. There are no art assets: every unit is a pr
 procedurally, and all sound is synthesised with WebAudio.
 
 ```bash
-cd khuzestan-1980
+git clone https://github.com/dounodeman/khuzestan.git
+cd khuzestan
 npm install
 npm run dev        # http://localhost:5173
 npm run build      # type-check + production build into dist/
