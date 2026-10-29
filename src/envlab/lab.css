@@ -1,0 +1,24 @@
+/* Environment Lab: plain dev-tool chrome in the command-post palette. */
+* { box-sizing: border-box; }
+html, body { margin: 0; background: #16140f; color: #e8e0c8; font-family: 'Share Tech Mono', 'Courier New', monospace; font-size: 13px; }
+header { display: flex; align-items: baseline; gap: 16px; padding: 10px 16px; border-bottom: 1px solid #322e24; }
+header h1 { margin: 0; font-size: 18px; letter-spacing: 0.08em; text-transform: uppercase; color: #e9a31a; }
+header span { color: #bfb69b; }
+#controls { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; padding: 8px 16px; background: #24211a; border-bottom: 1px solid #322e24; }
+#controls label { display: flex; gap: 6px; align-items: center; color: #bfb69b; }
+#controls select, #controls input[type='number'], #controls button { background: #16140f; color: #e8e0c8; border: 1px solid #55534c; padding: 3px 6px; font: inherit; }
+#controls input[type='number'] { width: 64px; }
+#controls button { cursor: pointer; border-color: #a8893e; color: #e9a31a; }
+main { display: flex; gap: 16px; padding: 12px 16px; align-items: flex-start; }
+section { overflow-x: auto; }
+.grid { display: grid; gap: 8px; }
+figure { margin: 0; }
+figure canvas { display: block; border: 1px solid #322e24; }
+figcaption { color: #bfb69b; font-size: 11px; padding: 3px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 380px; }
+h2 { font-size: 14px; color: #e9a31a; text-transform: uppercase; letter-spacing: 0.06em; margin: 18px 0 8px; }
+aside { min-width: 280px; max-width: 340px; background: #24211a; border: 1px solid #322e24; padding: 10px 12px; }
+aside h3 { margin: 0 0 8px; font-size: 13px; color: #e9a31a; text-transform: uppercase; }
+aside h3 small { color: #8a7b55; text-transform: none; font-weight: normal; }
+aside table { border-collapse: collapse; width: 100%; }
+aside th { text-align: left; color: #bfb69b; font-weight: normal; padding: 2px 8px 2px 0; vertical-align: top; white-space: pre; }
+aside td { color: #e8e0c8; padding: 2px 0; }
