@@ -232,6 +232,14 @@ npm run aimatch -- 1500 25 3                           # AI vs AI skirmish: budg
 npx tsx tools/scenario-match.ts 1                      # AI vs AI Border Crossing: seed
 ```
 
+## Sprite Lab (dev only)
+
+Vehicle sprites are moving to a data-driven vector format (`src/data/sprites/`, one renderer in
+`src/render/vector/`). With `npm run dev` running, open `/lab` to measure a sprite against its spec, overlay a
+reference drawing from `refs/<vehicle_id>/` (git-ignored) and export views or a contact sheet. See
+`docs/sprite_format.md` and `docs/vehicle_sheets.md`. The game itself still uses `src/render/sprites.ts` until
+the new sprites are finished.
+
 ## Architecture
 
 ```
