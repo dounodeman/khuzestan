@@ -84,6 +84,8 @@ export interface Part {
   text?: { str: string; size: number; rot?: number };
   /** Data note shown in the lab, e.g. '(verify) side of searchlight'. */
   note?: string;
+  /** Confidence of the measurement this part came from (vehicle sheet); C and X get debug markers in the lab. */
+  conf?: 'A' | 'B' | 'C' | 'X';
 }
 
 export interface Group {
@@ -122,7 +124,7 @@ export interface SpritePaint {
 export interface SpriteDef {
   id: string; // matches the unit id in src/data/units
   name: string;
-  status: 'placeholder' | 'pass1' | 'pass2' | 'pass3' | 'approved';
+  status: 'placeholder' | 'draft' | 'measured' | 'approved';
   kind: 'tracked' | 'wheeled' | 'heli' | 'drone' | 'towed';
   groups: Record<string, Group>;
   parts: Part[];
@@ -135,6 +137,8 @@ export interface SpriteDef {
     smoke?: Array<[number, number]>;
     dust?: Array<[number, number]>;
   };
-  /** Free-text provenance, e.g. 'docs/vehicle_sheets.md §3.1'. */
+  /** Free-text provenance, e.g. 'data/vehicle_sheets/iq_t55.json'. */
   source: string;
+  /** Low-confidence outline points (C and X) for the lab's debug markers, in each group's frame. */
+  weakPoints?: Array<{ group: string; at: [number, number]; conf: 'C' | 'X'; outline: string }>;
 }

@@ -12,12 +12,22 @@ import { compile } from '../render/vector/compile';
 import { drawSprite, lodFor } from '../render/vector/render';
 import { compareSpec, measure, type Measured } from '../render/vector/measure';
 import type { Box, Pt } from '../render/vector/geometry';
+import { anchors, compare, thumbSimilarity, THRESHOLDS, type CompareResult } from './compare';
+import { groupXf } from '../render/vector/compile';
 
 const D2R = Math.PI / 180;
 /** Game camera maps zoom to px/m via SPRITE_SCALE 1.7: default zoom 2, max zoom 6. */
 const GAME_PPM = { default: 3.4, max: 10.2 };
 
-interface RefState { img: HTMLImageElement | null; name: string; show: boolean; above: boolean; opacity: number; mPerPx: number; rot: number; ox: number; oy: number }
+interface RefState {
+  img: HTMLImageElement | null; name: string; fromRefs: boolean; show: boolean; above: boolean; opacity: number;
+  mPerPx: number; rot: number; ox: number; oy: number;
+  /** Real dimension the image was calibrated to, e.g. "hull_len 6.20". */
+  calibratedTo: string;
+  mask: HTMLCanvasElement | null; maskApproved: boolean; showMask: boolean;
+  /** Marked part positions in image pixels, keyed by sprite anchor id. */
+  marks: Record<string, Pt>;
+}
 
 const S = {
   id: SPRITES[0].id,
@@ -29,10 +39,15 @@ const S = {
   night: false, sil: false, lighting: true, grid: true, bbox: true, thumbs: true,
   lod: 'auto' as 'auto' | Lod,
   layers: Object.fromEntries(LAYERS.map((l) => [l, true])) as Record<Layer, boolean>,
-  tool: 'pan' as 'pan' | 'ruler' | 'calibrate',
+  tool: 'pan' as 'pan' | 'ruler' | 'calibrate' | 'mask' | 'mark',
+  compareMode: 'overlay' as 'overlay' | 'difference' | 'side',
+  weak: false,
+  maskPoly: [] as Pt[], // image pixel coordinates
+  markId: '',
+  result: null as CompareResult | null,
   ruler: null as [Pt, Pt] | null,
   calib: [] as Pt[], // image pixel coordinates
-  ref: { img: null, name: '', show: true, above: true, opacity: 0.5, mPerPx: 0.01, rot: 0, ox: 0, oy: 0 } as RefState,
+  ref: { img: null, name: '', fromRefs: false, show: true, above: true, opacity: 0.5, mPerPx: 0.01, rot: 0, ox: 0, oy: 0, calibratedTo: '', mask: null, maskApproved: false, showMask: true, marks: {} } as RefState,
 };
 
 // ---------------------------------------------------------------- URL state
@@ -55,6 +70,8 @@ function readUrl() {
   S.bbox = bool('bbox') ?? S.bbox;
   S.thumbs = bool('thumbs') ?? S.thumbs;
   S.lighting = bool('light') ?? S.lighting;
+  S.weak = bool('weak') ?? S.weak;
+  if (q.get('mode') === 'difference' || q.get('mode') === 'side') S.compareMode = q.get('mode') as 'difference' | 'side';
   if (q.has('lod')) S.lod = q.get('lod') === 'auto' ? 'auto' : (Number(q.get('lod')) as Lod);
   for (const l of (q.get('off') ?? '').split(',')) if (l in S.layers) S.layers[l as Layer] = false;
   S.panX = num('panx') ?? S.panX;
@@ -121,7 +138,7 @@ function buildLeft() {
   const s = sprite();
   left.append(el('h1', { textContent: 'SPRITE LAB' }));
   left.append(el('h2', { textContent: 'Vehicle' }));
-  left.append(select(SPRITES.map((d) => [d.id, `${d.name} · ${d.id}`]), () => S.id, (v) => { S.id = v; S.scheme = ''; S.ref.img = null; S.calib = []; buildLeft(); buildRight(); loadRefList(); }));
+  left.append(select(SPRITES.map((d) => [d.id, `${d.name} · ${d.id}`]), () => S.id, (v) => { S.id = v; S.scheme = ''; S.ref.img = null; S.calib = []; S.result = null; S.markId = ''; buildLeft(); buildRight(); buildCompare(); loadRefList(); }));
   left.append(el('div', { className: 'hint' }, `status: ${s.status}`, el('span', { className: 'badge', textContent: s.kind })));
 
   left.append(el('h2', { textContent: 'View' }));
@@ -176,6 +193,7 @@ const specBox = el('div');
 const readBox = el('div');
 const refBox = el('div');
 const notesBox = el('div');
+const cmpBox = el('div');
 
 function fmtV(v: number | number[] | undefined) {
   if (v === undefined) return '–';
@@ -187,6 +205,7 @@ function buildRight() {
     el('h2', { textContent: 'Spec vs measured (3%)' }), specBox,
     el('h2', { textContent: 'Live readouts' }), readBox,
     el('h2', { textContent: 'Reference overlay' }), refBox,
+    el('h2', { textContent: 'Compare with reference' }), cmpBox,
     el('h2', { textContent: 'Data notes' }), notesBox,
   );
   const s = sprite();
@@ -205,7 +224,7 @@ function buildRight() {
   buildReadouts(m);
   buildRef();
   const notes = el('ul', { className: 'notes' });
-  for (const p of s.parts) if (p.note) notes.append(el('li', {}, el('code', { textContent: p.id }), ` ${p.note}`));
+  for (const p of s.parts) if (p.note) notes.append(el('li', {}, el('code', { textContent: p.id }), ` ${p.conf && !p.note.startsWith(p.conf) ? `${p.conf} · ` : ''}${p.note}`));
   notesBox.replaceChildren(notes.children.length ? notes : el('div', { className: 'hint', textContent: 'none' }));
 }
 
@@ -236,33 +255,62 @@ let refList: string[] = [];
 async function loadRefList() {
   try {
     const r = await fetch(`/__lab/refs/${S.id}`);
-    refList = r.ok ? await r.json() : [];
+    refList = r.ok ? (await r.json()).images : [];
   } catch { refList = []; }
   buildRef();
 }
 
-function loadRefImage(src: string, name: string) {
-  const img = new Image();
-  img.onload = () => {
-    S.ref.img = img; S.ref.name = name;
-    // Start at roughly the vehicle's length so the image is in view; calibrate for the real scale.
-    const m = measure(sprite());
-    S.ref.mPerPx = (m.overallBox.x1 - m.overallBox.x0) / img.naturalWidth;
-    S.ref.ox = 0; S.ref.oy = 0; S.ref.rot = 0;
-    buildRef(); dirty();
-  };
-  img.src = src;
+const refUrl = (name: string) => `/refs/${S.id}/${encodeURIComponent(name)}`;
+async function fetchJson<T>(url: string): Promise<T | null> {
+  try { const r = await fetch(url); return r.ok ? ((await r.json()) as T) : null; } catch { return null; }
+}
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
+}
+
+async function loadRefImage(src: string, name: string, fromRefs: boolean) {
+  const img = await loadImage(src);
+  if (!img) return;
+  const r = S.ref;
+  r.img = img; r.name = name; r.fromRefs = fromRefs;
+  r.mask = null; r.maskApproved = false; r.marks = {}; r.calibratedTo = '';
+  // Start at roughly the vehicle's length so the image is in view; calibrate for the real scale.
+  const m = measure(sprite());
+  r.mPerPx = (m.overallBox.x1 - m.overallBox.x0) / img.naturalWidth;
+  r.ox = 0; r.oy = 0; r.rot = 0;
+  if (fromRefs) {
+    const cal = await fetchJson<{ mPerPx: number; rot: number; ox: number; oy: number; calibrated_to?: string }>(refUrl(`${name}.calib.json`));
+    if (cal) { r.mPerPx = cal.mPerPx; r.rot = cal.rot; r.ox = cal.ox; r.oy = cal.oy; r.calibratedTo = cal.calibrated_to ?? ''; }
+    const mk = await fetchJson<Record<string, Pt>>(refUrl(`${name}.points.json`));
+    if (mk) r.marks = mk;
+    const meta = await fetchJson<{ approved: boolean }>(refUrl(`${name}.mask.json`));
+    const mi = meta ? await loadImage(refUrl(`${name}.mask.png`) + `?t=${Date.now()}`) : null;
+    if (mi) { r.mask = el('canvas', { width: mi.naturalWidth, height: mi.naturalHeight }); r.mask.getContext('2d')!.drawImage(mi, 0, 0); r.maskApproved = !!meta?.approved; }
+  }
+  S.result = null;
+  buildRef(); buildCompare(); dirty();
+}
+
+async function saveSidecar(suffix: string, body: Blob | string) {
+  if (!S.ref.img || !S.ref.fromRefs) { alert('Sidecars are saved next to images in refs/<vehicle_id>/; load the image from that list.'); return false; }
+  const r = await fetch(`/__lab/refs/${S.id}/${encodeURIComponent(S.ref.name + suffix)}`, { method: 'POST', body });
+  return r.ok;
+}
+
+function saveCalibration() {
+  const r = S.ref;
+  return saveSidecar('.calib.json', JSON.stringify({ mPerPx: r.mPerPx, rot: r.rot, ox: r.ox, oy: r.oy, calibrated_to: r.calibratedTo }, null, 1));
 }
 
 function buildRef() {
   const list = select([['', refList.length ? '— pick from refs/' + S.id + '/ —' : `refs/${S.id}/ is empty`], ...refList.map((f) => [f, f] as [string, string])],
-    () => (refList.includes(S.ref.name) ? S.ref.name : ''), (v) => { if (v) loadRefImage(`/refs/${S.id}/${encodeURIComponent(v)}`, v); });
+    () => (refList.includes(S.ref.name) ? S.ref.name : ''), (v) => { if (v) loadRefImage(refUrl(v), v, true); });
   const file = el('input', { type: 'file', accept: 'image/*' });
-  file.addEventListener('change', () => { const f = file.files?.[0]; if (f) loadRefImage(URL.createObjectURL(f), f.name); });
-  const parts: Array<Node | string> = [list, el('div', { className: 'hint' }, 'or load a local file: ', file)];
+  file.addEventListener('change', () => { const f = file.files?.[0]; if (f) loadRefImage(URL.createObjectURL(f), f.name, false); });
+  const parts: Array<Node | string> = [list, el('div', { className: 'hint' }, 'or load a local file (not saved): ', file)];
   if (S.ref.img) {
     parts.push(
-      el('div', { className: 'hint', textContent: `${S.ref.name} · ${S.ref.img.naturalWidth}×${S.ref.img.naturalHeight}px · ${(S.ref.mPerPx * 1000).toFixed(2)} mm/px` }),
+      el('div', { className: 'hint', textContent: `${S.ref.name} · ${S.ref.img.naturalWidth}×${S.ref.img.naturalHeight}px · ${(S.ref.mPerPx * 1000).toFixed(2)} mm/px · calibrated to: ${S.ref.calibratedTo || 'not yet'}` }),
       check('Show', () => S.ref.show, (v) => { S.ref.show = v; }), check('Above sprite', () => S.ref.above, (v) => { S.ref.above = v; }),
       range('Opacity', 0, 1, 0.01, () => S.ref.opacity, (v) => { S.ref.opacity = v; }),
       range('Scale log', -4, 0, 0.001, () => Math.log10(S.ref.mPerPx), (v) => { S.ref.mPerPx = 10 ** v; }, () => `${(S.ref.mPerPx * 1000).toFixed(2)}`),
@@ -271,11 +319,84 @@ function buildRef() {
       range('Offset y m', -8, 8, 0.005, () => S.ref.oy, (v) => { S.ref.oy = v; }),
       el('div', { className: 'btns' },
         button('Calibrate 2 points', () => { S.tool = 'calibrate'; S.calib = []; }, () => S.tool === 'calibrate'),
-        button('Flip 180°', () => { S.ref.rot = ((S.ref.rot + 360) % 360) - 180; })),
-      el('div', { className: 'hint', textContent: 'Calibrate: click two points on the image whose real distance you know, then enter it in metres. The first point stays put.' }),
+        button('Flip 180°', () => { S.ref.rot = ((S.ref.rot + 360) % 360) - 180; }),
+        button('Save calibration', () => { saveCalibration(); })),
+      el('div', { className: 'hint', textContent: 'Calibrate: click two points whose real distance you know, enter it in metres and name the dimension (e.g. hull_len). The first point stays put. Align at heading 0: comparison is measured in the hull frame.' }),
     );
   }
   refBox.replaceChildren(...parts);
+  sync();
+}
+
+// ---------------------------------------------------------------- compare
+function rasterMask(poly: Pt[]) {
+  const img = S.ref.img!;
+  const c = el('canvas', { width: img.naturalWidth, height: img.naturalHeight });
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); poly.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.closePath(); ctx.fill();
+  return c;
+}
+
+function marksWorld(): Record<string, Pt> {
+  const out: Record<string, Pt> = {};
+  if (S.ref.img) for (const [k, ip] of Object.entries(S.ref.marks)) out[k] = refToWorld(ip);
+  return out;
+}
+
+function runCompare() {
+  const r = S.ref;
+  S.result = compare(sprite(), r.mask && r.maskApproved ? r.mask : null, r.img ? { mPerPx: r.mPerPx, rot: r.rot, ox: r.ox, oy: r.oy } : null, marksWorld());
+  buildCompare();
+  return S.result;
+}
+
+function buildCompare() {
+  const r = S.ref;
+  const kids: Array<Node | string> = [
+    el('div', { className: 'btns' },
+      button('Overlay', () => { S.compareMode = 'overlay'; }, () => S.compareMode === 'overlay'),
+      button('Difference', () => { S.compareMode = 'difference'; }, () => S.compareMode === 'difference'),
+      button('Side by side', () => { S.compareMode = 'side'; }, () => S.compareMode === 'side')),
+    check('Weak-data markers (conf C/X)', () => S.weak, (v) => { S.weak = v; }),
+  ];
+  if (!r.img) { kids.push(el('div', { className: 'hint', textContent: 'Load a top view from refs/ to compare.' })); cmpBox.replaceChildren(...kids); sync(); return; }
+  kids.push(
+    el('div', { className: 'hint', textContent: `Mask: ${r.mask ? (r.maskApproved ? 'approved' : 'drawn, not approved') : 'none'} · marks: ${Object.keys(r.marks).length}` }),
+    el('div', { className: 'btns' },
+      button('Draw mask', () => { S.tool = 'mask'; S.maskPoly = []; }, () => S.tool === 'mask'),
+      button('Approve & save mask', async () => {
+        if (!r.mask) return;
+        r.maskApproved = true;
+        const blob = await new Promise<Blob | null>((res) => r.mask!.toBlob(res, 'image/png'));
+        if (blob && (await saveSidecar('.mask.png', blob))) await saveSidecar('.mask.json', JSON.stringify({ approved: true, at: new Date().toISOString() }));
+        buildCompare();
+      }),
+      check('Show mask', () => r.showMask, (v) => { r.showMask = v; })),
+  );
+  const ids = anchors(sprite());
+  if (!S.markId && ids.length) S.markId = ids[0].id;
+  kids.push(
+    select(ids.map((a) => [a.id, `${r.marks[a.id] ? '✓ ' : ''}${a.id} (${a.conf ?? '–'}) ${a.at[0].toFixed(2)}, ${a.at[1].toFixed(2)}`] as [string, string]), () => S.markId, (v) => { S.markId = v; }),
+    el('div', { className: 'btns' },
+      button('Mark part on image', () => { S.tool = 'mark'; }, () => S.tool === 'mark'),
+      button('Remove mark', () => { delete r.marks[S.markId]; buildCompare(); }),
+      button('Save marks', () => { saveSidecar('.points.json', JSON.stringify(r.marks, null, 1)); })),
+    el('div', { className: 'btns' }, button('Compute', () => { runCompare(); })),
+  );
+  const res = S.result;
+  if (res) {
+    const t = el('table', { className: 'spec' });
+    const row = (k: string, v: string, ok: boolean | null) => t.append(el('tr', { className: ok === false ? 'fail' : '' }, el('td', { textContent: k }), el('td', { textContent: v }),
+      el('td', { textContent: ok === null ? '' : ok ? 'PASS' : 'FAIL', className: ok === null ? '' : ok ? 'pass' : 'fail' })));
+    row(`Silhouette IoU (≥ ${THRESHOLDS.iou})`, isFinite(res.iou) ? res.iou.toFixed(4) : '–', isFinite(res.iou) ? res.pass.iou : null);
+    row('Outline error mean', isFinite(res.meanCm) ? `${res.meanCm.toFixed(1)} cm` : '–', null);
+    row(`Outline error max (≤ ${THRESHOLDS.maxOutlineCm} cm)`, isFinite(res.maxCm) ? `${res.maxCm.toFixed(1)} cm` : '–', isFinite(res.maxCm) ? res.pass.outline : null);
+    for (const p of [...res.parts].sort((a, b) => b.errCm - a.errCm)) row(`${p.id} (${p.conf ?? '–'})`, `${p.errCm.toFixed(1)} cm`, p.counted ? p.pass : null);
+    kids.push(t, el('div', { className: 'hint', textContent: res.failures.length ? `Failures: ${res.failures.join('; ')}` : 'All thresholds pass.' }),
+      el('div', { className: 'hint', textContent: `Part threshold ${THRESHOLDS.partCm} cm applies to conf A/B parts; C/X errors are shown but not counted.` }));
+  }
+  cmpBox.replaceChildren(...kids);
   sync();
 }
 
@@ -335,17 +456,98 @@ function drawGrid(ctx: CanvasRenderingContext2D) {
   for (let y = Math.ceil(y0 / 5) * 5; y <= y1; y += 5) ctx.fillText(`${y} m`, 3, toScreen([0, y])[1] - 3);
 }
 
-function drawRef(ctx: CanvasRenderingContext2D) {
+function drawRef(ctx: CanvasRenderingContext2D, full = false) {
   const r = S.ref;
-  if (!r.img || !r.show) return;
+  if (!r.img || (!r.show && !full)) return;
   ctx.save();
-  ctx.globalAlpha = r.opacity;
+  ctx.globalAlpha = full ? 1 : r.opacity;
   const [cx, cy] = toScreen([r.ox, r.oy]);
   ctx.translate(cx, cy);
   ctx.rotate(r.rot * D2R);
   const k = r.mPerPx * S.ppm;
   ctx.scale(k, k);
   ctx.drawImage(r.img, -r.img.naturalWidth / 2, -r.img.naturalHeight / 2);
+  ctx.restore();
+}
+
+function placeImage(ctx: CanvasRenderingContext2D) {
+  const r = S.ref;
+  const [cx, cy] = toScreen([r.ox, r.oy]);
+  ctx.translate(cx, cy);
+  ctx.rotate(r.rot * D2R);
+  const k = r.mPerPx * S.ppm;
+  ctx.scale(k, k);
+  ctx.translate(-r.img!.naturalWidth / 2, -r.img!.naturalHeight / 2);
+}
+
+function drawMaskOverlay(ctx: CanvasRenderingContext2D) {
+  const r = S.ref;
+  if (!r.img) return;
+  ctx.save();
+  placeImage(ctx);
+  if (r.mask && r.showMask) {
+    ctx.globalAlpha = 0.28;
+    const tint = el('canvas', { width: r.mask.width, height: r.mask.height });
+    const tc = tint.getContext('2d')!;
+    tc.drawImage(r.mask, 0, 0); tc.globalCompositeOperation = 'source-in'; tc.fillStyle = r.maskApproved ? '#2f7cff' : '#d0301c'; tc.fillRect(0, 0, tint.width, tint.height);
+    ctx.drawImage(tint, 0, 0);
+    ctx.globalAlpha = 1;
+  }
+  if (S.tool === 'mask' && S.maskPoly.length) {
+    const lw = 1.5 / (r.mPerPx * S.ppm);
+    ctx.strokeStyle = '#d0301c'; ctx.lineWidth = lw;
+    ctx.beginPath(); S.maskPoly.forEach((p, i) => (i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]))); ctx.stroke();
+    ctx.fillStyle = '#d0301c';
+    for (const p of S.maskPoly) ctx.fillRect(p[0] - 2 * lw, p[1] - 2 * lw, 4 * lw, 4 * lw);
+  }
+  ctx.restore();
+}
+
+/** Sprite anchors (green) and marked reference positions (amber), with the error vector between them. */
+function drawMarks(ctx: CanvasRenderingContext2D, def: SpriteDef) {
+  if (!S.ref.img || !S.ref.show || (!Object.keys(S.ref.marks).length && S.tool !== 'mark')) return;
+  const marks = marksWorld();
+  ctx.lineWidth = 1.5; ctx.font = '10px "Share Tech Mono", monospace';
+  for (const a of anchors(def)) {
+    const mk = marks[a.id];
+    if (!mk && !(S.tool === 'mark' && a.id === S.markId)) continue;
+    const pa = toScreen(hullToWorld(a.at));
+    ctx.strokeStyle = '#86ff6e'; ctx.beginPath(); ctx.arc(pa[0], pa[1], 4, 0, 6.3); ctx.stroke();
+    if (mk) {
+      const pm = toScreen(mk);
+      ctx.strokeStyle = '#e9a31a';
+      ctx.beginPath(); ctx.moveTo(pm[0] - 5, pm[1] - 5); ctx.lineTo(pm[0] + 5, pm[1] + 5); ctx.moveTo(pm[0] + 5, pm[1] - 5); ctx.lineTo(pm[0] - 5, pm[1] + 5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pm[0], pm[1]); ctx.stroke();
+      if (a.id === S.markId || Object.keys(marks).length <= 12) { ctx.fillStyle = '#e9a31a'; ctx.fillText(a.id, pm[0] + 7, pm[1] - 4); }
+    }
+  }
+}
+
+/** Debug markers on low-confidence data: dashed boxes on C (magenta) and X (red) parts, diamonds on weak outline points. */
+function drawWeak(ctx: CanvasRenderingContext2D, def: SpriteDef) {
+  const pose = { turret: S.turret * D2R, rotor: S.rotor * D2R, recoil: S.recoil };
+  const col = (c: string | undefined) => (c === 'X' ? '#ff2a1a' : '#e040fb');
+  ctx.save();
+  ctx.setLineDash([3, 2]); ctx.lineWidth = 1; ctx.font = '9px "Share Tech Mono", monospace';
+  for (const a of anchors(def)) {
+    if (a.conf !== 'C' && a.conf !== 'X') continue;
+    const part = def.parts.find((p) => a.id === p.id || a.id.startsWith(p.id + '#'));
+    if (!part || part.layer === 'hull' || part.layer === 'turret') continue; // big outlines get point markers instead
+    const g = groupXf(def, part.group ?? 'hull', pose);
+    const local = groupXf(def, part.group ?? 'hull', { turret: 0, rotor: 0, recoil: 0 });
+    // anchors are at pose 0; re-map through the live pose
+    const inv = (p: Pt): Pt => { const t = local.map([0, 0]); const r = -local.rot; const d: Pt = [p[0] - t[0], p[1] - t[1]]; return [d[0] * Math.cos(r) - d[1] * Math.sin(r), d[0] * Math.sin(r) + d[1] * Math.cos(r)]; };
+    const p = toScreen(hullToWorld(g.map(inv(a.at))));
+    ctx.strokeStyle = col(a.conf); ctx.strokeRect(p[0] - 6, p[1] - 6, 12, 12);
+    ctx.fillStyle = col(a.conf); ctx.fillText(a.conf, p[0] + 7, p[1] - 6);
+  }
+  ctx.setLineDash([]);
+  for (const w of def.weakPoints ?? []) {
+    const g = groupXf(def, w.group, pose);
+    const p = toScreen(hullToWorld(g.map(w.at)));
+    ctx.fillStyle = col(w.conf);
+    ctx.beginPath(); ctx.moveTo(p[0], p[1] - 4); ctx.lineTo(p[0] + 4, p[1]); ctx.lineTo(p[0], p[1] + 4); ctx.lineTo(p[0] - 4, p[1]); ctx.closePath(); ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -414,15 +616,33 @@ function render() {
   ctx.fillStyle = S.sil ? '#cfc4a4' : '#b5a57a';
   ctx.fillRect(0, 0, W, H);
   if (S.grid) drawGrid(ctx);
-  if (!S.ref.above) drawRef(ctx);
-  ctx.save();
-  const [ox, oy] = toScreen([0, 0]);
-  ctx.translate(ox, oy);
-  ctx.rotate(S.heading * D2R);
-  ctx.scale(S.ppm, S.ppm);
-  drawSprite(ctx, cs, spriteState(S.ppm, S.heading * D2R, S.sil));
-  ctx.restore();
-  if (S.ref.above) drawRef(ctx);
+  const drawBody = () => {
+    ctx.save();
+    const [ox, oy] = toScreen([0, 0]);
+    ctx.translate(ox, oy);
+    ctx.rotate(S.heading * D2R);
+    ctx.scale(S.ppm, S.ppm);
+    drawSprite(ctx, cs, spriteState(S.ppm, S.heading * D2R, S.sil));
+    ctx.restore();
+  };
+  if (S.compareMode === 'side' && S.ref.img) {
+    // Left half: reference only; right half: sprite only; same scale, each centred in its half.
+    const pan = S.panX;
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W / 2, H); ctx.clip(); S.panX = pan - W / 4; drawRef(ctx, true); drawMaskOverlay(ctx); ctx.restore();
+    ctx.save(); ctx.beginPath(); ctx.rect(W / 2, 0, W / 2, H); ctx.clip(); S.panX = pan + W / 4; drawBody(); ctx.restore();
+    S.panX = pan;
+    ctx.fillStyle = '#16140f'; ctx.fillRect(W / 2 - 1, 0, 2, H);
+  } else if (S.compareMode === 'difference' && S.ref.img) {
+    drawBody();
+    ctx.save(); ctx.globalCompositeOperation = 'difference'; drawRef(ctx, true); ctx.restore();
+  } else {
+    if (!S.ref.above) drawRef(ctx);
+    drawBody();
+    if (S.ref.above) drawRef(ctx);
+    drawMaskOverlay(ctx);
+  }
+  if (S.weak) drawWeak(ctx, s);
+  drawMarks(ctx, s);
   if (S.night) nightGrade(ctx, W, H);
   if (S.bbox) drawBounds(ctx, m);
   // Ruler
@@ -533,9 +753,21 @@ view.addEventListener('pointerdown', (e) => {
         S.ref.mPerPx = meters / dPx;
         const moved = refToWorld(a);
         S.ref.ox += keep[0] - moved[0]; S.ref.oy += keep[1] - moved[1];
+        const dim = window.prompt('Which real dimension is that (e.g. hull_len, width, track centres)?', 'hull_len');
+        S.ref.calibratedTo = `${dim || 'unnamed'} ${meters} m`;
       }
       S.calib = []; S.tool = 'pan'; buildRef();
     }
+  } else if (S.tool === 'mask' && S.ref.img) {
+    const ip = worldToRef(wp);
+    const first = S.maskPoly[0];
+    const closeEnough = first && Math.hypot(...(([x, y]) => [x - e.offsetX, y - e.offsetY])(toScreen(refToWorld(first))) as [number, number]) < 8;
+    if (closeEnough && S.maskPoly.length >= 3) {
+      S.ref.mask = rasterMask(S.maskPoly); S.ref.maskApproved = false; S.maskPoly = []; S.tool = 'pan'; buildCompare();
+    } else S.maskPoly.push(ip);
+  } else if (S.tool === 'mark' && S.ref.img && S.markId) {
+    S.ref.marks[S.markId] = worldToRef(wp);
+    S.tool = 'pan'; buildCompare();
   } else drag = { x: e.clientX, y: e.clientY, px: S.panX, py: S.panY };
   sync(); dirty();
 });
@@ -548,7 +780,7 @@ view.addEventListener('pointermove', (e) => {
     el('span', {}, 'hull ', el('b', { textContent: `${hp[0].toFixed(3)}, ${hp[1].toFixed(3)}` })),
     ...(tp ? [el('span', {}, 'turret ', el('b', { textContent: `${tp[0].toFixed(3)}, ${tp[1].toFixed(3)}` }))] : []),
     el('span', {}, 'zoom ', el('b', { textContent: `${S.ppm.toFixed(0)} px/m` })),
-    el('span', { textContent: S.tool === 'calibrate' ? `calibrate: click point ${S.calib.length + 1} of 2` : S.tool === 'ruler' ? 'ruler: drag to measure' : 'drag to pan, wheel to zoom' }),
+    el('span', { textContent: S.tool === 'calibrate' ? `calibrate: click point ${S.calib.length + 1} of 2` : S.tool === 'ruler' ? 'ruler: drag to measure' : S.tool === 'mask' ? `mask: click around the vehicle, click the first point to close (${S.maskPoly.length} points)` : S.tool === 'mark' ? `mark: click where ${S.markId} is on the image` : 'drag to pan, wheel to zoom' }),
   );
   if (drag) { S.panX = drag.px + e.clientX - drag.x; S.panY = drag.py + e.clientY - drag.y; dirty(); }
   else if (S.tool === 'ruler' && S.ruler && e.buttons) { S.ruler[1] = wp; dirty(); }
@@ -566,7 +798,7 @@ view.addEventListener('dragover', (e) => e.preventDefault());
 view.addEventListener('drop', (e) => {
   e.preventDefault();
   const f = e.dataTransfer?.files[0];
-  if (f && f.type.startsWith('image/')) loadRefImage(URL.createObjectURL(f), f.name);
+  if (f && f.type.startsWith('image/')) loadRefImage(URL.createObjectURL(f), f.name, false);
 });
 window.addEventListener('resize', resize);
 
@@ -596,6 +828,27 @@ window.lab = {
   state: S,
   set(p: Partial<typeof S>) { const prevId = S.id; Object.assign(S, p); if (S.id !== prevId) { buildLeft(); buildRight(); } sync(); render(); },
   report() { const d = sprite(); const m = measure(d); return { id: d.id, values: m.values, roadWheelX: m.roadWheelX, spec: compareSpec(d, m) }; },
+  loadRef: (name: string) => loadRefImage(refUrl(name), name, true),
+  setRef(p: Partial<RefState>) { Object.assign(S.ref, p); buildRef(); buildCompare(); render(); },
+  setMaskFromPoints(poly: Pt[], approve = false) { S.ref.mask = rasterMask(poly); S.ref.maskApproved = approve; buildCompare(); render(); },
+  loadRefData: (url: string, name: string) => loadRefImage(url, name, false),
+  async setMaskData(url: string, approve = false) {
+    const mi = await loadImage(url);
+    if (!mi) return;
+    S.ref.mask = el('canvas', { width: mi.naturalWidth, height: mi.naturalHeight }); S.ref.mask.getContext('2d')!.drawImage(mi, 0, 0);
+    S.ref.maskApproved = approve; buildCompare(); render();
+  },
+  setMarks(m: Record<string, Pt>) { S.ref.marks = m; buildCompare(); render(); },
+  compare: () => runCompare(),
+  anchors: () => anchors(sprite()),
+  confusable(size = 64, limit = 0.9) {
+    const out: Array<{ a: string; b: string; iou: number }> = [];
+    for (let i = 0; i < SPRITES.length; i++) for (let j = i + 1; j < SPRITES.length; j++) {
+      const iou = thumbSimilarity(SPRITES[i], SPRITES[j], size);
+      if (iou >= limit) out.push({ a: SPRITES[i].id, b: SPRITES[j].id, iou });
+    }
+    return out;
+  },
   view: () => { render(); return view.toDataURL('image/png'); },
   contactSheet: (ppm?: number) => contactSheet(ppm).toDataURL('image/png'),
   thumb: (size: number, sil = false) => { const m = measure(sprite()); const L = Math.max(m.overallBox.x1 - m.overallBox.x0, m.overallBox.y1 - m.overallBox.y0); const c = el('canvas', { width: size, height: size }); renderAt(c, size / (L * 1.05), sil); return c.toDataURL('image/png'); },
@@ -607,6 +860,7 @@ window.lab = {
   await loadFonts();
   buildLeft();
   buildRight();
+  buildCompare();
   thumbs.style.display = S.thumbs ? '' : 'none';
   resize();
   loadRefList();

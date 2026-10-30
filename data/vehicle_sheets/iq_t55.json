@@ -1,0 +1,144 @@
+{
+  "id": "iq_t55",
+  "name": "T-55",
+  "variant": "T-55 (Soviet-pattern, Iraqi service 1980); T-55 vs T-55A not yet settled",
+  "status": "draft",
+  "kind": "tracked",
+  "units": "metres",
+  "axes": "+x front, +y vehicle right, origin hull centre",
+  "references": [],
+  "dimensions": {
+    "hull_len": {
+      "value": 6.2, "conf": "C",
+      "src": "armyrecognition.com T-55 page (6.2 m hull); man.fas.org T-54/55 page (chassis length 6.20 m, likely T-55AMV)",
+      "alt": [
+        { "value": 6.04, "src": "en.wikipedia.org/wiki/T-54/T-55: T-55A hull 'lengthened from 6.04 m to 6.2 m', so 6.04 m for the base T-55" },
+        { "value": 6.45, "src": "docs/vehicle_sheets.md §3.1 (old approximate sheet)", "conf": "C" }
+      ],
+      "reason": "Two spec sources give 6.20 m; Wikipedia implies 6.04 m for the pre-T-55A hull. Depends on which variant Iraq had in 1980 (open question). No plan view yet."
+    },
+    "width": {
+      "value": 3.37, "conf": "C",
+      "src": "en.wikipedia.org/wiki/T-54/T-55 infobox (3.37 m)",
+      "alt": [
+        { "value": 3.27, "src": "docs/vehicle_sheets.md §3.1 (old approximate sheet)", "conf": "C" },
+        { "value": 3.6, "src": "man.fas.org T-54/55 page, overall width (listed variant T-55AMV)" },
+        { "value": 3.64, "src": "armyrecognition.com T-55 page" }
+      ],
+      "reason": "Encyclopedic source preferred for the base vehicle; 3.60 and 3.64 m likely include later side skirts. Sources differ by up to 11%, needs a calibrated plan view."
+    },
+    "overall_len": {
+      "value": 9.0, "conf": "C",
+      "src": "en.wikipedia.org/wiki/T-54/T-55 (9.00 m gun forward); armyrecognition.com (9.0 m); old sheet agrees",
+      "reason": "Three sources agree; stays C until checked on a calibrated plan view."
+    },
+    "height": {
+      "value": 2.4, "conf": "C",
+      "src": "en.wikipedia.org/wiki/T-54/T-55 (2.40 m)",
+      "alt": [
+        { "value": 2.35, "src": "armyrecognition.com T-55 page" },
+        { "value": 2.32, "src": "man.fas.org (T-55AMV)" }
+      ],
+      "reason": "Not used in the top view; kept for the side-view cross-check."
+    }
+  },
+  "outlines": {
+    "hull": {
+      "frame": "hull", "mirror": "half", "role": "hull",
+      "src": "docs/vehicle_sheets.md §3.1 hull_half (old approximate sheet)",
+      "points": [
+        [3.15, 0, { "conf": "C" }], [3.15, 0.75, { "conf": "C" }], [2.5, 1.25, { "conf": "C" }], [1.9, 1.35, { "conf": "C" }],
+        [-2.9, 1.35, { "conf": "C" }], [-3.2, 1.1, { "conf": "C" }], [-3.2, 0, { "conf": "C" }]
+      ]
+    },
+    "fender": {
+      "frame": "hull", "mirror": "side", "role": "fender",
+      "src": "old sheet: fenders y 1.05..1.635; x extent estimated so track ends show (no source)",
+      "points": [
+        [2.95, 1.05, { "conf": "X" }], [3.0, 1.2, { "conf": "X" }], [2.9, 1.635, { "conf": "C" }],
+        [-2.95, 1.635, { "conf": "C" }], [-2.95, 1.05, { "conf": "X" }]
+      ]
+    },
+    "turret": {
+      "frame": "turret", "mirror": "half", "role": "turret",
+      "src": "docs/vehicle_sheets.md §3.1 turret.half (old approximate sheet), smoothed",
+      "points": [
+        [1.55, 0, { "conf": "C", "smooth": true }], [1.45, 0.5, { "conf": "C", "smooth": true }], [0.9, 0.95, { "conf": "C", "smooth": true }],
+        [0.0, 1.05, { "conf": "C", "smooth": true }], [-0.9, 0.95, { "conf": "C", "smooth": true }], [-1.5, 0.55, { "conf": "C", "smooth": true }],
+        [-1.7, 0, { "conf": "C", "smooth": true }]
+      ]
+    },
+    "engine_deck": {
+      "frame": "hull", "mirror": "full", "role": "deck",
+      "src": "old sheet engine_deck x[-3.0,-1.4] y[-0.9,0.9]",
+      "points": [[-1.4, -0.9, { "conf": "C" }], [-1.4, 0.9, { "conf": "C" }], [-3.0, 0.9, { "conf": "C" }], [-3.0, -0.9, { "conf": "C" }]]
+    }
+  },
+  "turret": { "pivot": [0.3, 0], "conf": "C", "src": "old sheet turret.pivot; ring diameter unknown" },
+  "gun": {
+    "calibre_mm": 100, "from_x": 1.45, "muzzle_x": 5.5, "dia": 0.14, "recoil": 0.3,
+    "conf": "C", "src": "calibre: en.wikipedia.org/wiki/T-54/T-55 (D-10T 100 mm); length and diameter: old sheet (muzzle chosen so overall length = 9.00 m)",
+    "fittings": [
+      { "kind": "bore_evacuator", "x": 4.05, "len": 0.5, "dia": 0.24, "conf": "C", "src": "old sheet bore_evac x 3.8 + len 0.5 (front end 4.05)" }
+    ]
+  },
+  "running_gear": {
+    "tracks": { "x_from": -3.1, "x_to": 3.25, "y_centre": 1.34, "width": 0.58, "link_pitch": 0.137, "conf": "C",
+      "src": "old sheet tracks; link pitch 137 mm is an unverified estimate (needs a side profile or track detail photo)" },
+    "road_wheels": { "x": [2.35, 1.13, 0.13, -0.87, -1.87], "y_centre": 1.34, "dia": 0.81, "width": 0.34, "conf": "X",
+      "src": "five per side with a wider gap after wheel 1 (armyrecognition.com); x positions and diameter are placeholders until a side profile is calibrated" }
+  },
+  "parts": [
+    { "id": "driver_hatch", "kind": "hatch", "frame": "hull", "shape": "circle", "pos": [2.4, -0.6], "r": 0.28, "inside": "hull",
+      "offset_reason": "driver sits front left", "conf": "X",
+      "src": "side: front left (en.wikipedia.org/wiki/T-54/T-55; armyrecognition.com). Exact position and size need a top view" },
+    { "id": "cupola", "kind": "cupola", "frame": "turret", "shape": "circle", "pos": [-0.15, -0.55], "r": 0.3, "inside": "turret",
+      "offset_reason": "commander sits turret left", "conf": "C", "src": "old sheet cupola" },
+    { "id": "cupola_ir_light", "kind": "searchlight", "frame": "turret", "shape": "rect", "pos": [0.25, -0.55], "size": [0.2, 0.18], "corner": 0.03,
+      "inside": "turret", "lost_at": 1, "offset_reason": "on the commander's cupola, turret left", "conf": "X",
+      "src": "IR light on the forward part of the commander's cupola (armyrecognition.com); position estimated in front of the old-sheet cupola" },
+    { "id": "loader_hatch", "kind": "hatch", "frame": "turret", "shape": "rect", "pos": [-0.5, 0.5], "size": [0.5, 0.45], "corner": 0.08,
+      "inside": "turret", "offset_reason": "loader sits turret right", "conf": "C", "src": "old sheet loader_hatch" },
+    { "id": "ventilator", "kind": "ventilator", "frame": "turret", "shape": "circle", "pos": [-1.0, 0.35], "r": 0.15, "inside": "turret",
+      "offset_reason": "off-centre on the real turret", "conf": "C", "src": "old sheet ventilator_dome" },
+    { "id": "ir_searchlight", "kind": "searchlight", "frame": "turret", "shape": "rect", "pos": [1.2, 0.45], "size": [0.35, 0.3], "corner": 0.04,
+      "lost_at": 1, "offset_reason": "right of the main gun", "conf": "C",
+      "src": "side: right of the main gun (armyrecognition.com, L-2 'Luna'); position from the old sheet" },
+    { "id": "fuel_tanks", "kind": "fuel_tank", "frame": "hull", "shape": "rect", "pos": [0.6, 1.35], "size": [1.2, 0.3], "corner": 0.15,
+      "repeat": { "at": [[0, 0], [-1.4, 0]] }, "inside": "fender", "lost_at": 2, "offset_reason": "right fender only", "conf": "C",
+      "src": "old sheet: two cylinders on the right fender; count and positions need a top view or right-side photo" },
+    { "id": "toolbox", "kind": "toolbox", "frame": "hull", "shape": "rect", "pos": [-0.1, -1.375], "size": [1.0, 0.35], "corner": 0.03,
+      "inside": "fender", "lost_at": 1, "offset_reason": "left fender only", "conf": "C", "src": "old sheet left fender toolbox" },
+    { "id": "spare_links", "kind": "spare_links", "frame": "hull", "shape": "rect", "pos": [0.7685, -1.34], "size": [0.137, 0.42],
+      "repeat": { "count": 4, "step": [0.15, 0] }, "inside": "fender", "lost_at": 1, "offset_reason": "left fender only", "conf": "C",
+      "src": "old sheet: spare track links on the left fender" },
+    { "id": "unditching_log", "kind": "log", "frame": "hull", "shape": "rect", "pos": [-3.04, 0], "size": [0.22, 2.0], "corner": 0.11,
+      "lost_at": 1, "conf": "C", "src": "old sheet rear-deck unditching log" },
+    { "id": "engine_louvres", "kind": "louvre", "frame": "hull", "shape": "line", "points": [[-2.95, -0.85], [-2.95, 0.85]],
+      "repeat": { "count": 14, "step": [0.11, 0] }, "inside": "engine_deck", "conf": "X",
+      "src": "louvre count and pitch unknown; needs a rear-deck photo" },
+    { "id": "glacis_weld", "kind": "weld", "frame": "hull", "shape": "line", "points": [[3.1, 0.75], [2.48, 1.22]], "mirror": true,
+      "inside": "hull", "conf": "C", "src": "follows the old-sheet glacis corner" },
+    { "id": "mark_r", "kind": "marking", "frame": "turret", "shape": "rect", "pos": [-0.65, 0.77], "size": [0.6, 0.32], "text": "{num}",
+      "inside": "turret", "offset_reason": "one number per turret side", "conf": "C", "src": "stencilled tactical number, placement is a game convention" },
+    { "id": "mark_l", "kind": "marking", "frame": "turret", "shape": "rect", "pos": [-0.65, -0.77], "size": [0.6, 0.32], "text": "{num}",
+      "inside": "turret", "offset_reason": "one number per turret side", "conf": "C", "src": "stencilled tactical number, placement is a game convention" }
+  ],
+  "hooks": {
+    "exhaust": { "value": [[-3.2, 0.5]], "conf": "X", "src": "old sheet puts it rear right; outlet side and position need a rear-deck photo" },
+    "dust": { "value": [[-3.1, 1.34], [-3.1, -1.34]], "conf": "C", "src": "rear ends of the tracks" },
+    "smoke": { "value": [[-2.2, 0], [0.3, 0]], "conf": "C", "src": "engine deck and turret centre (game effect)" }
+  },
+  "paint": { "schemes": ["iq_sand", "iq_sand_olive", "iq_sand_brown"], "src": "docs/vehicle_sheets.md §2 default Iraqi schemes; period photos not yet checked" },
+  "excluded_details": [],
+  "open_questions": [
+    "Which variant did Iraq field in 1980: base T-55 (hull 6.04 m) or T-55A (6.20 m)? Sets hull_len.",
+    "Width: sources give 3.27, 3.37, 3.60 and 3.64 m. A calibrated plan view decides.",
+    "Exhaust outlet side (old sheet: rear right).",
+    "Were the rear 200 l fuel drums (armyrecognition.com) commonly fitted on Iraqi T-55s in 1980? Not drawn until confirmed.",
+    "KTD-1 rangefinder over the mantlet (T-55A from 1974, Wikipedia) and late T-55A rubber skirts: present on Iraqi tanks in 1980? Not drawn."
+  ],
+  "notes": [
+    "Draft built from the old approximate sheet and published specs. No reference images measured yet."
+  ]
+}

@@ -11,7 +11,10 @@
     "typecheck": "tsc --noEmit",
     "balance": "tsx tools/balance-table.ts",
     "sim": "tsx tools/headless-sim.ts",
-    "aimatch": "tsx tools/ai-match.ts"
+    "aimatch": "tsx tools/ai-match.ts",
+    "check-sheets": "tsx tools/check-sheets.ts",
+    "sheets-doc": "tsx tools/sheets-doc.ts",
+    "lab-selftest": "node tools/lab-selftest.cjs"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
