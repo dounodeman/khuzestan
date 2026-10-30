@@ -1,3 +1,8 @@
 node_modules
 dist
 *.log
+refs/
+# Dev-only image-analysis tools (tools/vision): local Python env and model weights, never committed or shipped
+tools/vision/.venv/
+tools/vision/weights/
+__pycache__/

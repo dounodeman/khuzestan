@@ -1,0 +1,12 @@
+# Dev-only image-analysis tools for the Sprite Lab accuracy pipeline (reference images in refs/).
+# Never imported by the game; installed into tools/vision/.venv by tools/vision/setup.sh.
+# Versions are the ones verified on 2026-10-30.
+numpy>=1.26,<2.4             # sam3 requires numpy < 2.4
+opencv-python-headless==5.0.0.93   # perspective correction, contours, Hough circles
+scikit-image==0.26.0         # contour extraction, circle detection, mask clean-up
+shapely==2.2.0               # polygon IoU and outline (Hausdorff) distance in cm
+pixelmatch==0.4.0            # pixel diff of renders (Python side; node side uses the pixelmatch devDependency)
+pillow>=11
+psutil                       # imported by sam3 but not declared by it
+torch>=2.5.1                 # CPU is enough; CUDA is used when present
+torchvision
