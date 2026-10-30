@@ -1,144 +1,1085 @@
 {
-  "id": "iq_t55",
-  "name": "T-55",
-  "variant": "T-55 (Soviet-pattern, Iraqi service 1980); T-55 vs T-55A not yet settled",
-  "status": "draft",
-  "kind": "tracked",
-  "units": "metres",
-  "axes": "+x front, +y vehicle right, origin hull centre",
-  "references": [],
-  "dimensions": {
-    "hull_len": {
-      "value": 6.2, "conf": "C",
-      "src": "armyrecognition.com T-55 page (6.2 m hull); man.fas.org T-54/55 page (chassis length 6.20 m, likely T-55AMV)",
-      "alt": [
-        { "value": 6.04, "src": "en.wikipedia.org/wiki/T-54/T-55: T-55A hull 'lengthened from 6.04 m to 6.2 m', so 6.04 m for the base T-55" },
-        { "value": 6.45, "src": "docs/vehicle_sheets.md §3.1 (old approximate sheet)", "conf": "C" }
-      ],
-      "reason": "Two spec sources give 6.20 m; Wikipedia implies 6.04 m for the pre-T-55A hull. Depends on which variant Iraq had in 1980 (open question). No plan view yet."
+ "id": "iq_t55",
+ "name": "T-55",
+ "variant": "T-55 / T-55A (Soviet-pattern, Iraqi service 1980); base T-55 vs T-55A not yet settled",
+ "status": "draft",
+ "kind": "tracked",
+ "units": "metres",
+ "axes": "+x front, +y vehicle right, origin hull centre",
+ "references": [],
+ "dimensions": {
+  "hull_len": {
+   "value": 6.2,
+   "conf": "C",
+   "needs": "top",
+   "src": "weaponsystems.net/system/630-T-55 (T-55A data table): '6.20 m (hull)'; armyrecognition.com T-55 page: 6.2 m",
+   "alt": [
+    {
+     "value": 6.04,
+     "src": "en.wikipedia.org/wiki/T-54/T-55: T-55A hull 'lengthened from 6.04 m to 6.2 m', so 6.04 m before the T-55A"
     },
-    "width": {
-      "value": 3.37, "conf": "C",
-      "src": "en.wikipedia.org/wiki/T-54/T-55 infobox (3.37 m)",
-      "alt": [
-        { "value": 3.27, "src": "docs/vehicle_sheets.md §3.1 (old approximate sheet)", "conf": "C" },
-        { "value": 3.6, "src": "man.fas.org T-54/55 page, overall width (listed variant T-55AMV)" },
-        { "value": 3.64, "src": "armyrecognition.com T-55 page" }
-      ],
-      "reason": "Encyclopedic source preferred for the base vehicle; 3.60 and 3.64 m likely include later side skirts. Sources differ by up to 11%, needs a calibrated plan view."
-    },
-    "overall_len": {
-      "value": 9.0, "conf": "C",
-      "src": "en.wikipedia.org/wiki/T-54/T-55 (9.00 m gun forward); armyrecognition.com (9.0 m); old sheet agrees",
-      "reason": "Three sources agree; stays C until checked on a calibrated plan view."
-    },
-    "height": {
-      "value": 2.4, "conf": "C",
-      "src": "en.wikipedia.org/wiki/T-54/T-55 (2.40 m)",
-      "alt": [
-        { "value": 2.35, "src": "armyrecognition.com T-55 page" },
-        { "value": 2.32, "src": "man.fas.org (T-55AMV)" }
-      ],
-      "reason": "Not used in the top view; kept for the side-view cross-check."
+    {
+     "value": 6.45,
+     "src": "docs/vehicle_sheets_draft.md §3.1 (old approximate sheet)",
+     "conf": "C"
     }
+   ],
+   "reason": "Two spec sources give 6.20 m (T-55A). 6.04 m applies if Iraq's 1980 tanks were base T-55s (open question). The drawn outline is still the old sheet's 6.45 m, so check-sheets fails until a plan view is calibrated."
   },
-  "outlines": {
-    "hull": {
-      "frame": "hull", "mirror": "half", "role": "hull",
-      "src": "docs/vehicle_sheets.md §3.1 hull_half (old approximate sheet)",
-      "points": [
-        [3.15, 0, { "conf": "C" }], [3.15, 0.75, { "conf": "C" }], [2.5, 1.25, { "conf": "C" }], [1.9, 1.35, { "conf": "C" }],
-        [-2.9, 1.35, { "conf": "C" }], [-3.2, 1.1, { "conf": "C" }], [-3.2, 0, { "conf": "C" }]
-      ]
+  "width": {
+   "value": 3.27,
+   "conf": "C",
+   "needs": "top",
+   "src": "weaponsystems.net/system/630-T-55 (T-55A data table): '3.27 m'; theworldwars.net T-54/T-55 entry (T-55A column): 3.270 m; old sheet agrees",
+   "alt": [
+    {
+     "value": 3.37,
+     "src": "en.wikipedia.org/wiki/T-54/T-55 infobox"
     },
-    "fender": {
-      "frame": "hull", "mirror": "side", "role": "fender",
-      "src": "old sheet: fenders y 1.05..1.635; x extent estimated so track ends show (no source)",
-      "points": [
-        [2.95, 1.05, { "conf": "X" }], [3.0, 1.2, { "conf": "X" }], [2.9, 1.635, { "conf": "C" }],
-        [-2.95, 1.635, { "conf": "C" }], [-2.95, 1.05, { "conf": "X" }]
-      ]
+    {
+     "value": 3.6,
+     "src": "man.fas.org/dod-101/sys/land/row/t54tank.htm, overall width, page lists T-55AMV"
     },
-    "turret": {
-      "frame": "turret", "mirror": "half", "role": "turret",
-      "src": "docs/vehicle_sheets.md §3.1 turret.half (old approximate sheet), smoothed",
-      "points": [
-        [1.55, 0, { "conf": "C", "smooth": true }], [1.45, 0.5, { "conf": "C", "smooth": true }], [0.9, 0.95, { "conf": "C", "smooth": true }],
-        [0.0, 1.05, { "conf": "C", "smooth": true }], [-0.9, 0.95, { "conf": "C", "smooth": true }], [-1.5, 0.55, { "conf": "C", "smooth": true }],
-        [-1.7, 0, { "conf": "C", "smooth": true }]
-      ]
-    },
-    "engine_deck": {
-      "frame": "hull", "mirror": "full", "role": "deck",
-      "src": "old sheet engine_deck x[-3.0,-1.4] y[-0.9,0.9]",
-      "points": [[-1.4, -0.9, { "conf": "C" }], [-1.4, 0.9, { "conf": "C" }], [-3.0, 0.9, { "conf": "C" }], [-3.0, -0.9, { "conf": "C" }]]
+    {
+     "value": 3.64,
+     "src": "armyrecognition.com T-55 page"
     }
+   ],
+   "reason": "Three sources agree on 3.27 m. Wikipedia's 3.37 m is 3.1% higher; 3.60 and 3.64 m likely include later skirts or the AMV. A calibrated plan view decides."
   },
-  "turret": { "pivot": [0.3, 0], "conf": "C", "src": "old sheet turret.pivot; ring diameter unknown" },
-  "gun": {
-    "calibre_mm": 100, "from_x": 1.45, "muzzle_x": 5.5, "dia": 0.14, "recoil": 0.3,
-    "conf": "C", "src": "calibre: en.wikipedia.org/wiki/T-54/T-55 (D-10T 100 mm); length and diameter: old sheet (muzzle chosen so overall length = 9.00 m)",
-    "fittings": [
-      { "kind": "bore_evacuator", "x": 4.05, "len": 0.5, "dia": 0.24, "conf": "C", "src": "old sheet bore_evac x 3.8 + len 0.5 (front end 4.05)" }
+  "overall_len": {
+   "value": 9.0,
+   "conf": "C",
+   "needs": "top",
+   "src": "en.wikipedia.org/wiki/T-54/T-55 '9.00 m with gun forward'; armyrecognition.com T-55 page 9.0 m; weaponsystems.net/system/630-T-55 (T-55A data table) '9 m (gun forward)'",
+   "reason": "Three sources agree; C until checked on a calibrated plan view."
+  },
+  "height": {
+   "value": 2.35,
+   "conf": "C",
+   "needs": "side",
+   "src": "weaponsystems.net/system/630-T-55 (T-55A data table): '2.35 m (cupola)'; armyrecognition.com T-55 page: 2.35 m",
+   "alt": [
+    {
+     "value": 2.4,
+     "src": "en.wikipedia.org/wiki/T-54/T-55; theworldwars.net T-54/T-55 entry (T-55A column)"
+    },
+    {
+     "value": 2.32,
+     "src": "man.fas.org/dod-101/sys/land/row/t54tank.htm (T-55AMV)"
+    }
+   ],
+   "reason": "Not drawn in a top view; used for the side-view cross-check. Sources differ by up to 3.4% (definition of the measuring point varies)."
+  },
+  "track_centres": {
+   "value": 2.64,
+   "conf": "C",
+   "needs": "top",
+   "src": "weaponsystems.net/system/630-T-55 (T-55A data table): 'Tread 2.64 m'; theworldwars.net T-54/T-55 entry (T-55A column): 'Track 2.640 m'"
+  },
+  "track_width": {
+   "value": 0.58,
+   "conf": "C",
+   "needs": "top",
+   "src": "weaponsystems.net/system/630-T-55 (T-55A data table): '0.58 m'; theworldwars.net T-54/T-55 entry (T-55A column): 580 mm; old sheet agrees"
+  },
+  "track_on_ground": {
+   "value": 3.84,
+   "conf": "C",
+   "needs": "side",
+   "src": "weaponsystems.net/system/630-T-55 (T-55A data table): 'Track on ground 3.84 m'; theworldwars.net T-54/T-55 entry (T-55A column): 3.840 m"
+  },
+  "ground_clearance": {
+   "value": 0.425,
+   "conf": "C",
+   "needs": "side",
+   "src": "theworldwars.net T-54/T-55 entry (T-55A column): 0.425 m",
+   "alt": [
+    {
+     "value": 0.43,
+     "src": "weaponsystems.net/system/630-T-55 (T-55A data table)"
+    }
+   ],
+   "reason": "Side view only."
+  },
+  "barrel_len": {
+   "value": 5.35,
+   "conf": "C",
+   "needs": "top",
+   "src": "en.wikipedia.org/wiki/D-10_tank_gun: 'Barrel length: 5.35 m L/53.5' (D-10 family; T-55 uses the D-10T2S)",
+   "reason": "Whole tube; the part outside the mantlet must be shorter."
+  }
+ },
+ "outlines": {
+  "hull": {
+   "frame": "hull",
+   "mirror": "half",
+   "role": "hull",
+   "src": "docs/vehicle_sheets.md §3.1 hull_half (old approximate sheet)",
+   "points": [
+    [
+     3.15,
+     0,
+     {
+      "conf": "C"
+     }
+    ],
+    [
+     3.15,
+     0.75,
+     {
+      "conf": "C"
+     }
+    ],
+    [
+     2.5,
+     1.25,
+     {
+      "conf": "C"
+     }
+    ],
+    [
+     1.9,
+     1.35,
+     {
+      "conf": "C"
+     }
+    ],
+    [
+     -2.9,
+     1.35,
+     {
+      "conf": "C"
+     }
+    ],
+    [
+     -3.2,
+     1.1,
+     {
+      "conf": "C"
+     }
+    ],
+    [
+     -3.2,
+     0,
+     {
+      "conf": "C"
+     }
     ]
+   ],
+   "needs": "top"
   },
-  "running_gear": {
-    "tracks": { "x_from": -3.1, "x_to": 3.25, "y_centre": 1.34, "width": 0.58, "link_pitch": 0.137, "conf": "C",
-      "src": "old sheet tracks; link pitch 137 mm is an unverified estimate (needs a side profile or track detail photo)" },
-    "road_wheels": { "x": [2.35, 1.13, 0.13, -0.87, -1.87], "y_centre": 1.34, "dia": 0.81, "width": 0.34, "conf": "X",
-      "src": "five per side with a wider gap after wheel 1 (armyrecognition.com); x positions and diameter are placeholders until a side profile is calibrated" }
+  "fender": {
+   "frame": "hull",
+   "mirror": "side",
+   "role": "fender",
+   "src": "old sheet: fenders y 1.05..1.635; x extent estimated so track ends show (no source)",
+   "points": [
+    [
+     2.95,
+     1.05,
+     {
+      "conf": "X"
+     }
+    ],
+    [
+     3.0,
+     1.2,
+     {
+      "conf": "X"
+     }
+    ],
+    [
+     2.9,
+     1.635,
+     {
+      "conf": "C"
+     }
+    ],
+    [
+     -2.95,
+     1.635,
+     {
+      "conf": "C"
+     }
+    ],
+    [
+     -2.95,
+     1.05,
+     {
+      "conf": "X"
+     }
+    ]
+   ],
+   "needs": "top"
   },
-  "parts": [
-    { "id": "driver_hatch", "kind": "hatch", "frame": "hull", "shape": "circle", "pos": [2.4, -0.6], "r": 0.28, "inside": "hull",
-      "offset_reason": "driver sits front left", "conf": "X",
-      "src": "side: front left (en.wikipedia.org/wiki/T-54/T-55; armyrecognition.com). Exact position and size need a top view" },
-    { "id": "cupola", "kind": "cupola", "frame": "turret", "shape": "circle", "pos": [-0.15, -0.55], "r": 0.3, "inside": "turret",
-      "offset_reason": "commander sits turret left", "conf": "C", "src": "old sheet cupola" },
-    { "id": "cupola_ir_light", "kind": "searchlight", "frame": "turret", "shape": "rect", "pos": [0.25, -0.55], "size": [0.2, 0.18], "corner": 0.03,
-      "inside": "turret", "lost_at": 1, "offset_reason": "on the commander's cupola, turret left", "conf": "X",
-      "src": "IR light on the forward part of the commander's cupola (armyrecognition.com); position estimated in front of the old-sheet cupola" },
-    { "id": "loader_hatch", "kind": "hatch", "frame": "turret", "shape": "rect", "pos": [-0.5, 0.5], "size": [0.5, 0.45], "corner": 0.08,
-      "inside": "turret", "offset_reason": "loader sits turret right", "conf": "C", "src": "old sheet loader_hatch" },
-    { "id": "ventilator", "kind": "ventilator", "frame": "turret", "shape": "circle", "pos": [-1.0, 0.35], "r": 0.15, "inside": "turret",
-      "offset_reason": "off-centre on the real turret", "conf": "C", "src": "old sheet ventilator_dome" },
-    { "id": "ir_searchlight", "kind": "searchlight", "frame": "turret", "shape": "rect", "pos": [1.2, 0.45], "size": [0.35, 0.3], "corner": 0.04,
-      "lost_at": 1, "offset_reason": "right of the main gun", "conf": "C",
-      "src": "side: right of the main gun (armyrecognition.com, L-2 'Luna'); position from the old sheet" },
-    { "id": "fuel_tanks", "kind": "fuel_tank", "frame": "hull", "shape": "rect", "pos": [0.6, 1.35], "size": [1.2, 0.3], "corner": 0.15,
-      "repeat": { "at": [[0, 0], [-1.4, 0]] }, "inside": "fender", "lost_at": 2, "offset_reason": "right fender only", "conf": "C",
-      "src": "old sheet: two cylinders on the right fender; count and positions need a top view or right-side photo" },
-    { "id": "toolbox", "kind": "toolbox", "frame": "hull", "shape": "rect", "pos": [-0.1, -1.375], "size": [1.0, 0.35], "corner": 0.03,
-      "inside": "fender", "lost_at": 1, "offset_reason": "left fender only", "conf": "C", "src": "old sheet left fender toolbox" },
-    { "id": "spare_links", "kind": "spare_links", "frame": "hull", "shape": "rect", "pos": [0.7685, -1.34], "size": [0.137, 0.42],
-      "repeat": { "count": 4, "step": [0.15, 0] }, "inside": "fender", "lost_at": 1, "offset_reason": "left fender only", "conf": "C",
-      "src": "old sheet: spare track links on the left fender" },
-    { "id": "unditching_log", "kind": "log", "frame": "hull", "shape": "rect", "pos": [-3.04, 0], "size": [0.22, 2.0], "corner": 0.11,
-      "lost_at": 1, "conf": "C", "src": "old sheet rear-deck unditching log" },
-    { "id": "engine_louvres", "kind": "louvre", "frame": "hull", "shape": "line", "points": [[-2.95, -0.85], [-2.95, 0.85]],
-      "repeat": { "count": 14, "step": [0.11, 0] }, "inside": "engine_deck", "conf": "X",
-      "src": "louvre count and pitch unknown; needs a rear-deck photo" },
-    { "id": "glacis_weld", "kind": "weld", "frame": "hull", "shape": "line", "points": [[3.1, 0.75], [2.48, 1.22]], "mirror": true,
-      "inside": "hull", "conf": "C", "src": "follows the old-sheet glacis corner" },
-    { "id": "mark_r", "kind": "marking", "frame": "turret", "shape": "rect", "pos": [-0.65, 0.77], "size": [0.6, 0.32], "text": "{num}",
-      "inside": "turret", "offset_reason": "one number per turret side", "conf": "C", "src": "stencilled tactical number, placement is a game convention" },
-    { "id": "mark_l", "kind": "marking", "frame": "turret", "shape": "rect", "pos": [-0.65, -0.77], "size": [0.6, 0.32], "text": "{num}",
-      "inside": "turret", "offset_reason": "one number per turret side", "conf": "C", "src": "stencilled tactical number, placement is a game convention" }
+  "turret": {
+   "frame": "turret",
+   "mirror": "half",
+   "role": "turret",
+   "src": "docs/vehicle_sheets.md §3.1 turret.half (old approximate sheet), smoothed",
+   "points": [
+    [
+     1.55,
+     0,
+     {
+      "conf": "C",
+      "smooth": true
+     }
+    ],
+    [
+     1.45,
+     0.5,
+     {
+      "conf": "C",
+      "smooth": true
+     }
+    ],
+    [
+     0.9,
+     0.95,
+     {
+      "conf": "C",
+      "smooth": true
+     }
+    ],
+    [
+     0.0,
+     1.05,
+     {
+      "conf": "C",
+      "smooth": true
+     }
+    ],
+    [
+     -0.9,
+     0.95,
+     {
+      "conf": "C",
+      "smooth": true
+     }
+    ],
+    [
+     -1.5,
+     0.55,
+     {
+      "conf": "C",
+      "smooth": true
+     }
+    ],
+    [
+     -1.7,
+     0,
+     {
+      "conf": "C",
+      "smooth": true
+     }
+    ]
+   ],
+   "needs": "top"
+  },
+  "engine_deck": {
+   "frame": "hull",
+   "mirror": "full",
+   "role": "deck",
+   "src": "old sheet engine_deck x[-3.0,-1.4] y[-0.9,0.9]",
+   "points": [
+    [
+     -1.4,
+     -0.9,
+     {
+      "conf": "C"
+     }
+    ],
+    [
+     -1.4,
+     0.9,
+     {
+      "conf": "C"
+     }
+    ],
+    [
+     -3.0,
+     0.9,
+     {
+      "conf": "C"
+     }
+    ],
+    [
+     -3.0,
+     -0.9,
+     {
+      "conf": "C"
+     }
+    ]
+   ],
+   "needs": "rear"
+  }
+ },
+ "turret": {
+  "pivot": [
+   0.3,
+   0
   ],
-  "hooks": {
-    "exhaust": { "value": [[-3.2, 0.5]], "conf": "X", "src": "old sheet puts it rear right; outlet side and position need a rear-deck photo" },
-    "dust": { "value": [[-3.1, 1.34], [-3.1, -1.34]], "conf": "C", "src": "rear ends of the tracks" },
-    "smoke": { "value": [[-2.2, 0], [0.3, 0]], "conf": "C", "src": "engine deck and turret centre (game effect)" }
-  },
-  "paint": { "schemes": ["iq_sand", "iq_sand_olive", "iq_sand_brown"], "src": "docs/vehicle_sheets.md §2 default Iraqi schemes; period photos not yet checked" },
-  "excluded_details": [],
-  "open_questions": [
-    "Which variant did Iraq field in 1980: base T-55 (hull 6.04 m) or T-55A (6.20 m)? Sets hull_len.",
-    "Width: sources give 3.27, 3.37, 3.60 and 3.64 m. A calibrated plan view decides.",
-    "Exhaust outlet side (old sheet: rear right).",
-    "Were the rear 200 l fuel drums (armyrecognition.com) commonly fitted on Iraqi T-55s in 1980? Not drawn until confirmed.",
-    "KTD-1 rangefinder over the mantlet (T-55A from 1974, Wikipedia) and late T-55A rubber skirts: present on Iraqi tanks in 1980? Not drawn."
+  "conf": "C",
+  "needs": "top",
+  "src": "old sheet turret.pivot; ring diameter not found in the sources checked"
+ },
+ "gun": {
+  "calibre_mm": 100,
+  "from_x": 1.45,
+  "muzzle_x": 5.5,
+  "dia": 0.14,
+  "recoil": 0.3,
+  "conf": "C",
+  "src": "calibre: en.wikipedia.org/wiki/T-54/T-55 (D-10T2S 100 mm, 'equipped with an ejector'); visible length and diameter: old sheet, muzzle chosen so overall length = 9.00 m",
+  "fittings": [
+   {
+    "kind": "bore_evacuator",
+    "x": 4.05,
+    "len": 0.5,
+    "dia": 0.24,
+    "conf": "C",
+    "src": "existence: en.wikipedia.org/wiki/D-10_tank_gun (D-10T2S 'equipped with an ejector'); position and size: old sheet (bore_evac x 3.8 + len 0.5)"
+   }
   ],
-  "notes": [
-    "Draft built from the old approximate sheet and published specs. No reference images measured yet."
-  ]
+  "needs": "top"
+ },
+ "running_gear": {
+  "tracks": {
+   "x_from": -3.1,
+   "x_to": 3.25,
+   "y_centre": 1.32,
+   "width": 0.58,
+   "link_pitch": 0.137,
+   "conf": "C",
+   "src": "y centre = half the 2.64 m track centres and width 0.58 m (weaponsystems.net/system/630-T-55 (T-55A data table); theworldwars.net T-54/T-55 entry (T-55A column)); x extent from the old sheet; link pitch 137 mm is an unverified estimate",
+   "needs": "side"
+  }
+ },
+ "parts": [
+  {
+   "id": "driver_hatch",
+   "kind": "hatch",
+   "frame": "hull",
+   "shape": "circle",
+   "pos": [
+    2.4,
+    -0.6
+   ],
+   "r": 0.28,
+   "inside": "hull",
+   "offset_reason": "driver sits front left",
+   "conf": "X",
+   "src": "side: front left (en.wikipedia.org/wiki/T-54/T-55; armyrecognition.com). Exact position and size need a top view",
+   "needs": "top"
+  },
+  {
+   "id": "cupola",
+   "kind": "cupola",
+   "frame": "turret",
+   "shape": "circle",
+   "pos": [
+    -0.15,
+    -0.55
+   ],
+   "r": 0.3,
+   "inside": "turret",
+   "offset_reason": "commander sits turret left",
+   "conf": "C",
+   "src": "side: commander on the turret left (en.wikipedia.org/wiki/T-54/T-55, T-54 layout carried over); position and radius: old sheet",
+   "needs": "top"
+  },
+  {
+   "id": "cupola_ir_light",
+   "kind": "searchlight",
+   "frame": "turret",
+   "shape": "rect",
+   "pos": [
+    0.25,
+    -0.55
+   ],
+   "size": [
+    0.2,
+    0.18
+   ],
+   "corner": 0.03,
+   "inside": "turret",
+   "lost_at": 1,
+   "offset_reason": "on the commander's cupola, turret left",
+   "conf": "X",
+   "src": "IR light on the forward part of the commander's cupola (armyrecognition.com); position estimated in front of the old-sheet cupola",
+   "needs": "top"
+  },
+  {
+   "id": "loader_hatch",
+   "kind": "hatch",
+   "frame": "turret",
+   "shape": "rect",
+   "pos": [
+    -0.5,
+    0.5
+   ],
+   "size": [
+    0.5,
+    0.45
+   ],
+   "corner": 0.08,
+   "inside": "turret",
+   "offset_reason": "loader sits turret right",
+   "conf": "C",
+   "src": "old sheet loader_hatch",
+   "needs": "top"
+  },
+  {
+   "id": "ir_searchlight",
+   "kind": "searchlight",
+   "frame": "turret",
+   "shape": "rect",
+   "pos": [
+    1.2,
+    0.45
+   ],
+   "size": [
+    0.35,
+    0.3
+   ],
+   "corner": 0.04,
+   "lost_at": 1,
+   "offset_reason": "right of the main gun",
+   "conf": "C",
+   "src": "side: right of the main gun (armyrecognition.com, L-2 'Luna'); position from the old sheet",
+   "needs": "top"
+  },
+  {
+   "id": "fuel_tanks",
+   "kind": "fuel_tank",
+   "frame": "hull",
+   "shape": "rect",
+   "pos": [
+    0.6,
+    1.35
+   ],
+   "size": [
+    1.2,
+    0.3
+   ],
+   "corner": 0.15,
+   "repeat": {
+    "at": [
+     [
+      0,
+      0
+     ],
+     [
+      -1.4,
+      0
+     ]
+    ]
+   },
+   "inside": "fender",
+   "lost_at": 2,
+   "offset_reason": "right fender only",
+   "conf": "X",
+   "src": "old sheet: two cylinders on the right fender. en.wikipedia.org/wiki/T-54/T-55 describes four flat external tanks (one oil, three diesel) on the early T-54; count, shape and positions on the T-55 need a top view",
+   "needs": "top"
+  },
+  {
+   "id": "toolbox",
+   "kind": "toolbox",
+   "frame": "hull",
+   "shape": "rect",
+   "pos": [
+    -0.1,
+    -1.375
+   ],
+   "size": [
+    1.0,
+    0.35
+   ],
+   "corner": 0.03,
+   "inside": "fender",
+   "lost_at": 1,
+   "offset_reason": "left fender only",
+   "conf": "C",
+   "src": "old sheet left fender toolbox",
+   "needs": "top"
+  },
+  {
+   "id": "spare_links",
+   "kind": "spare_links",
+   "frame": "hull",
+   "shape": "rect",
+   "pos": [
+    0.7685,
+    -1.34
+   ],
+   "size": [
+    0.137,
+    0.42
+   ],
+   "repeat": {
+    "count": 4,
+    "step": [
+     0.15,
+     0
+    ]
+   },
+   "inside": "fender",
+   "lost_at": 1,
+   "offset_reason": "left fender only",
+   "conf": "C",
+   "src": "old sheet: spare track links on the left fender",
+   "needs": "top"
+  },
+  {
+   "id": "unditching_log",
+   "kind": "log",
+   "frame": "hull",
+   "shape": "rect",
+   "pos": [
+    -3.04,
+    0
+   ],
+   "size": [
+    0.22,
+    2.0
+   ],
+   "corner": 0.11,
+   "lost_at": 1,
+   "conf": "C",
+   "src": "old sheet rear-deck unditching log",
+   "needs": "top"
+  },
+  {
+   "id": "engine_louvres",
+   "kind": "louvre",
+   "frame": "hull",
+   "shape": "line",
+   "points": [
+    [
+     -2.95,
+     -0.85
+    ],
+    [
+     -2.95,
+     0.85
+    ]
+   ],
+   "repeat": {
+    "count": 14,
+    "step": [
+     0.11,
+     0
+    ]
+   },
+   "inside": "engine_deck",
+   "conf": "X",
+   "src": "louvre count and pitch unknown; needs a rear-deck photo",
+   "needs": "rear"
+  },
+  {
+   "id": "glacis_weld",
+   "kind": "weld",
+   "frame": "hull",
+   "shape": "line",
+   "points": [
+    [
+     3.1,
+     0.75
+    ],
+    [
+     2.48,
+     1.22
+    ]
+   ],
+   "mirror": true,
+   "inside": "hull",
+   "conf": "C",
+   "src": "follows the old-sheet glacis corner"
+  },
+  {
+   "id": "mark_r",
+   "kind": "marking",
+   "frame": "turret",
+   "shape": "rect",
+   "pos": [
+    -0.65,
+    0.77
+   ],
+   "size": [
+    0.6,
+    0.32
+   ],
+   "text": "{num}",
+   "inside": "turret",
+   "offset_reason": "one number per turret side",
+   "conf": "C",
+   "src": "stencilled tactical number, placement is a game convention"
+  },
+  {
+   "id": "mark_l",
+   "kind": "marking",
+   "frame": "turret",
+   "shape": "rect",
+   "pos": [
+    -0.65,
+    -0.77
+   ],
+   "size": [
+    0.6,
+    0.32
+   ],
+   "text": "{num}",
+   "inside": "turret",
+   "offset_reason": "one number per turret side",
+   "conf": "C",
+   "src": "stencilled tactical number, placement is a game convention"
+  }
+ ],
+ "hooks": {
+  "exhaust": {
+   "value": [
+    [
+     -2.6,
+     -1.45
+    ]
+   ],
+   "conf": "X",
+   "needs": "rear",
+   "src": "side: 'The engine exhaust is on the left fender' (en.wikipedia.org/wiki/T-54/T-55); position along the fender is unknown (old sheet had it rear right)"
+  },
+  "dust": {
+   "value": [
+    [
+     -3.1,
+     1.34
+    ],
+    [
+     -3.1,
+     -1.34
+    ]
+   ],
+   "conf": "C",
+   "src": "rear ends of the tracks"
+  },
+  "smoke": {
+   "value": [
+    [
+     -2.2,
+     0
+    ],
+    [
+     0.3,
+     0
+    ]
+   ],
+   "conf": "C",
+   "src": "engine deck and turret centre (game effect)"
+  }
+ },
+ "paint": {
+  "schemes": [
+   "iq_sand",
+   "iq_sand_olive",
+   "iq_sand_brown"
+  ],
+  "src": "docs/vehicle_sheets.md §2 default Iraqi schemes; period photos not yet checked"
+ },
+ "excluded_details": [
+  "KTD-1/KTD-2 laser rangefinder over the mantlet: fitted from 1974 (Wikipedia), not confirmed on Iraqi tanks in 1980. Not drawn.",
+  "Rubber side skirts: late-production T-55A only (Wikipedia). Not drawn.",
+  "T-55AM appliqué armour ('Brezhnev eyebrows') and 902B smoke dischargers: 1983 modernisation (globalsecurity.org 'T-55AM Model 1983'). Not drawn.",
+  "T-55AMV Kontakt-1 ERA (weaponsystems.net). Not drawn."
+ ],
+ "open_questions": [
+  "Variant: did Iraq field base T-55s (hull 6.04 m) or T-55As (6.20 m) in 1980? Sets hull_len. Iraq also bought Chinese Type 69s (Wikipedia), which this sprite does not cover.",
+  "Width: 3.27 m (three sources) vs 3.37 m (Wikipedia). A calibrated plan view decides.",
+  "DShK on the loader's hatch: Soviet tanks got it from 1970-72. Were Iraqi T-55s fitted by 1980?",
+  "Rear fuel drums: commonly fitted on Iraqi T-55s in 1980?",
+  "Right-fender tanks: how many, flat or round, and where?",
+  "Exhaust outlet: confirmed on the left fender; where along it?",
+  "Road wheel positions and the wider first gap: need a calibrated side view."
+ ],
+ "notes": [
+  "Draft built from published specs and the old approximate sheet. No reference images measured yet; every geometry value is C or X.",
+  "Road wheels are recorded in the detail inventory but not drawn: from above they sit under the fenders."
+ ],
+ "detail_inventory": [
+  {
+   "id": "hull",
+   "what": "Hull roof outline with glacis corners",
+   "status": "drawn",
+   "part": "hull",
+   "conf": "C",
+   "src": "docs/vehicle_sheets_draft.md §3.1 (old approximate sheet)",
+   "needs": "top"
+  },
+  {
+   "id": "fender",
+   "what": "Track guards (fenders) both sides",
+   "status": "drawn",
+   "part": "fender",
+   "conf": "C",
+   "src": "docs/vehicle_sheets_draft.md §3.1 (old approximate sheet)",
+   "needs": "top"
+  },
+  {
+   "id": "turret",
+   "what": "Cast dome turret",
+   "status": "drawn",
+   "part": "turret",
+   "conf": "C",
+   "src": "docs/vehicle_sheets_draft.md §3.1 (old approximate sheet)",
+   "needs": "top"
+  },
+  {
+   "id": "track",
+   "what": "Tracks, 580 mm, all-steel",
+   "status": "drawn",
+   "part": "track",
+   "conf": "C",
+   "src": "en.wikipedia.org/wiki/T-54/T-55 ('all-steel track'); weaponsystems.net/system/630-T-55 (T-55A data table)",
+   "needs": "side"
+  },
+  {
+   "id": "road_wheels",
+   "what": "Five road wheels per side, wider gap after wheel 1, no return rollers",
+   "status": "pending",
+   "conf": "C",
+   "src": "en.wikipedia.org/wiki/T-54/T-55; armyrecognition.com T-55 page. Hidden under the fenders from above; x positions need a calibrated side view",
+   "needs": "side"
+  },
+  {
+   "id": "barrel",
+   "what": "100 mm D-10T2S barrel",
+   "status": "drawn",
+   "part": "barrel",
+   "conf": "C",
+   "src": "en.wikipedia.org/wiki/D-10_tank_gun",
+   "needs": "top"
+  },
+  {
+   "id": "bore_evacuator",
+   "what": "Bore evacuator (ejector) on the barrel",
+   "status": "drawn",
+   "part": "bore_evacuator",
+   "conf": "C",
+   "src": "en.wikipedia.org/wiki/D-10_tank_gun",
+   "needs": "top"
+  },
+  {
+   "id": "mantlet",
+   "what": "Gun mantlet and canvas cover",
+   "status": "pending",
+   "conf": "X",
+   "src": "not in the sources checked; needs a top or front view",
+   "needs": "top"
+  },
+  {
+   "id": "coax_port",
+   "what": "Coaxial MG port beside the gun",
+   "status": "pending",
+   "conf": "X",
+   "src": "en.wikipedia.org/wiki/T-54/T-55 (PKT coax on the T-55A); position needs a front view",
+   "needs": "front"
+  },
+  {
+   "id": "driver_hatch",
+   "what": "Driver's single-piece hatch, front left, swings left",
+   "status": "drawn",
+   "part": "driver_hatch",
+   "conf": "X",
+   "src": "en.wikipedia.org/wiki/T-54/T-55; armyrecognition.com T-55 page",
+   "needs": "top"
+  },
+  {
+   "id": "driver_periscopes",
+   "what": "Two driver's periscopes forward of the hatch",
+   "status": "pending",
+   "conf": "C",
+   "src": "armyrecognition.com T-55 page",
+   "needs": "top"
+  },
+  {
+   "id": "headlights",
+   "what": "Driving light and IR headlight on the hull front",
+   "status": "pending",
+   "conf": "C",
+   "src": "en.wikipedia.org/wiki/T-54/T-55 (IR headlight); armyrecognition.com T-55 page (IR light on the right of the glacis)",
+   "needs": "front"
+  },
+  {
+   "id": "cupola",
+   "what": "Commander's cupola with periscopes, turret left",
+   "status": "drawn",
+   "part": "cupola",
+   "conf": "C",
+   "src": "en.wikipedia.org/wiki/T-54/T-55",
+   "needs": "top"
+  },
+  {
+   "id": "cupola_ir_light",
+   "what": "OU-3 IR light on the front of the cupola",
+   "status": "drawn",
+   "part": "cupola_ir_light",
+   "conf": "X",
+   "src": "armyrecognition.com T-55 page",
+   "needs": "top"
+  },
+  {
+   "id": "loader_hatch",
+   "what": "Loader's hatch, turret right",
+   "status": "drawn",
+   "part": "loader_hatch",
+   "conf": "C",
+   "src": "docs/vehicle_sheets_draft.md §3.1 (old approximate sheet)",
+   "needs": "top"
+  },
+  {
+   "id": "dshk",
+   "what": "12.7 mm DShK AA MG on the loader's hatch",
+   "status": "unconfirmed",
+   "conf": "C",
+   "src": "en.wikipedia.org/wiki/T-54/T-55: fitted to new and old T-55s from 1970; weaponsystems.net/system/630-T-55 (T-55A data table): retrofitted 1972. Not confirmed on Iraqi export tanks in 1980",
+   "needs": "detail"
+  },
+  {
+   "id": "ir_searchlight",
+   "what": "L-2 'Luna' IR searchlight right of the gun",
+   "status": "drawn",
+   "part": "ir_searchlight",
+   "conf": "C",
+   "src": "armyrecognition.com T-55 page",
+   "needs": "top"
+  },
+  {
+   "id": "gunner_sight",
+   "what": "Gunner's sight aperture / periscope on the turret roof",
+   "status": "pending",
+   "conf": "X",
+   "src": "not in the sources checked",
+   "needs": "top"
+  },
+  {
+   "id": "turret_fittings",
+   "what": "Turret grab rails, lifting eyes, stowage brackets",
+   "status": "pending",
+   "conf": "X",
+   "src": "not in the sources checked",
+   "needs": "top"
+  },
+  {
+   "id": "ventilator_dome",
+   "what": "Dome ventilator on the front right of the turret",
+   "status": "removed",
+   "conf": "C",
+   "src": "en.wikipedia.org/wiki/T-54/T-55: the dome on the front right identifies the older T-54; the T-55 lacks it (old sheet had it at turret [-1.0, 0.35])"
+  },
+  {
+   "id": "fuel_tanks",
+   "what": "External fuel and oil tanks on the right fender",
+   "status": "drawn",
+   "part": "fuel_tanks",
+   "conf": "X",
+   "src": "en.wikipedia.org/wiki/T-54/T-55",
+   "needs": "top"
+  },
+  {
+   "id": "rear_drums",
+   "what": "Two jettisonable fuel drums on the hull rear",
+   "status": "unconfirmed",
+   "conf": "C",
+   "src": "armyrecognition.com T-55 page; en.wikipedia.org/wiki/T-54/T-55 (400 l rear drums). Fit on Iraqi tanks in 1980 not confirmed",
+   "needs": "rear"
+  },
+  {
+   "id": "toolbox",
+   "what": "Stowage boxes on the left fender",
+   "status": "drawn",
+   "part": "toolbox",
+   "conf": "C",
+   "src": "docs/vehicle_sheets_draft.md §3.1 (old approximate sheet)",
+   "needs": "top"
+  },
+  {
+   "id": "spare_links",
+   "what": "Spare track links on the fenders",
+   "status": "drawn",
+   "part": "spare_links",
+   "conf": "C",
+   "src": "docs/vehicle_sheets_draft.md §3.1 (old approximate sheet)",
+   "needs": "top"
+  },
+  {
+   "id": "tow_cables",
+   "what": "Tow cables along the fenders or hull",
+   "status": "pending",
+   "conf": "X",
+   "src": "not in the sources checked",
+   "needs": "top"
+  },
+  {
+   "id": "tow_hooks",
+   "what": "Front and rear tow hooks",
+   "status": "pending",
+   "conf": "X",
+   "src": "not in the sources checked",
+   "needs": "top"
+  },
+  {
+   "id": "engine_deck",
+   "what": "Engine deck plate",
+   "status": "drawn",
+   "part": "engine_deck",
+   "conf": "C",
+   "src": "docs/vehicle_sheets_draft.md §3.1 (old approximate sheet)",
+   "needs": "rear"
+  },
+  {
+   "id": "engine_louvres",
+   "what": "Radiator grilles / louvres on the engine deck",
+   "status": "drawn",
+   "part": "engine_louvres",
+   "conf": "X",
+   "src": "count and pitch unknown",
+   "needs": "rear"
+  },
+  {
+   "id": "exhaust",
+   "what": "Exhaust outlet on the left fender",
+   "status": "pending",
+   "conf": "C",
+   "src": "en.wikipedia.org/wiki/T-54/T-55",
+   "needs": "rear"
+  },
+  {
+   "id": "unditching_log",
+   "what": "Unditching beam across the rear",
+   "status": "drawn",
+   "part": "unditching_log",
+   "conf": "C",
+   "src": "docs/vehicle_sheets_draft.md §3.1 (old approximate sheet)",
+   "needs": "rear"
+  },
+  {
+   "id": "snorkel",
+   "what": "Deep-wading snorkel and its stowage",
+   "status": "unconfirmed",
+   "conf": "C",
+   "src": "en.wikipedia.org/wiki/T-54/T-55 (OPVT snorkel on the T-54A); theworldwars.net T-54/T-55 entry (T-55A column) lists the T-55A as not amphibious; stowage place on the T-55 not found",
+   "needs": "rear"
+  },
+  {
+   "id": "glacis_weld",
+   "what": "Weld seams at the glacis corners",
+   "status": "drawn",
+   "part": "glacis_weld",
+   "conf": "C",
+   "src": "docs/vehicle_sheets_draft.md §3.1 (old approximate sheet)",
+   "needs": "top"
+  },
+  {
+   "id": "tactical_number",
+   "what": "Stencilled tactical number on the turret sides",
+   "status": "drawn",
+   "part": "mark_r",
+   "conf": "C",
+   "src": "game convention (no national symbols)"
+  },
+  {
+   "id": "ktd_rangefinder",
+   "what": "KTD-1/2 laser rangefinder box over the mantlet",
+   "status": "excluded",
+   "conf": "C",
+   "src": "en.wikipedia.org/wiki/T-54/T-55: fitted from 1974; not confirmed on Iraqi tanks in 1980, so not drawn"
+  },
+  {
+   "id": "rubber_skirts",
+   "what": "Rubber side skirts",
+   "status": "excluded",
+   "conf": "C",
+   "src": "en.wikipedia.org/wiki/T-54/T-55: late-production T-55A only"
+  },
+  {
+   "id": "t55am_armour",
+   "what": "Appliqué turret and glacis armour, 902B smoke dischargers (T-55AM)",
+   "status": "excluded",
+   "conf": "C",
+   "src": "weaponsystems.net lists the T-55AM and T-55AMV as deep modernisations; globalsecurity.org titles the T-55AM 'Model 1983'"
+  },
+  {
+   "id": "t55amv_era",
+   "what": "Kontakt-1 ERA blocks (T-55AMV)",
+   "status": "excluded",
+   "conf": "C",
+   "src": "weaponsystems.net/system/630-T-55 (T-55A data table)"
+  }
+ ],
+ "changes_from_draft": [
+  {
+   "what": "hull_len (stated)",
+   "before": "6.45 m",
+   "after": "6.20 m",
+   "src": "weaponsystems.net/system/630-T-55 (T-55A data table); armyrecognition.com T-55 page"
+  },
+  {
+   "what": "width (stated)",
+   "before": "3.27 m",
+   "after": "3.27 m (now sourced; Wikipedia 3.37 m recorded as alternative)",
+   "src": "weaponsystems.net/system/630-T-55 (T-55A data table); theworldwars.net T-54/T-55 entry (T-55A column)"
+  },
+  {
+   "what": "track centre line",
+   "before": "y ±1.34",
+   "after": "y ±1.32",
+   "src": "track centres 2.64 m (weaponsystems.net, theworldwars.net)"
+  },
+  {
+   "what": "driver hatch",
+   "before": "[2.4, 0] centre",
+   "after": "[2.4, -0.6] front left (position X)",
+   "src": "en.wikipedia.org/wiki/T-54/T-55; armyrecognition.com T-55 page"
+  },
+  {
+   "what": "turret ventilator dome",
+   "before": "turret [-1.0, 0.35]",
+   "after": "removed",
+   "src": "en.wikipedia.org/wiki/T-54/T-55: T-54 feature, absent on the T-55"
+  },
+  {
+   "what": "exhaust hook",
+   "before": "[-3.2, 0.5] rear right",
+   "after": "[-2.6, -1.45] left fender (position X)",
+   "src": "en.wikipedia.org/wiki/T-54/T-55"
+  },
+  {
+   "what": "road wheels",
+   "before": "5 per side at x 2.35, 1.13, 0.13, -0.87, -1.87 (placeholder)",
+   "after": "not drawn (hidden under the fenders from above); positions pending a side view",
+   "src": "placeholder span 4.22 m between first and last wheel centres exceeds the 3.84 m track on ground (weaponsystems.net)"
+  },
+  {
+   "what": "fuel tanks",
+   "before": "two cylinders, conf C",
+   "after": "same geometry, conf X",
+   "src": "en.wikipedia.org/wiki/T-54/T-55 describes flat tanks (T-54); count and shape unknown for the T-55"
+  },
+  {
+   "what": "cupola IR light",
+   "before": "absent",
+   "after": "added in front of the cupola (position X)",
+   "src": "armyrecognition.com T-55 page"
+  }
+ ],
+ "critique": [
+  "Turret reads as an egg (pointed nose, wide rear) because the old-sheet points put the widest point behind the pivot. The T-55's cast turret is a near-round dome; this is the most visible error and needs the plan view.",
+  "Hull is 6.45 m long against 6.20 m stated (check-sheets fails). The bevelled rear corners and steep glacis chamfers also come from the old sheet and look boat-like.",
+  "No mantlet: the barrel starts at the turret edge. The mantlet and its canvas cover are pending a top or front view.",
+  "Fuel tanks are drawn as rounded pills; the sources describe flat tanks. Count, shape and position are X.",
+  "Engine deck is one even louvre grid. Real decks have grilles and access panels in a pattern that needs a rear-deck photo.",
+  "Track ends show as solid black blocks with no idler or sprocket shape. Acceptable from above, but fender ends need checking on the plan view.",
+  "Tactical numbers are large relative to the turret and should shrink once the turret outline is corrected.",
+  "At 64 px the silhouette is a rectangle plus gun: from straight above the turret sits inside the hull outline, so the silhouette alone cannot separate a T-55 from a T-62 (IoU 0.899, just under the 0.90 flag). The cues that survive are the shaded round turret, the gun length beyond the hull and the bore evacuator position. Those need the measured turret and gun before they can be trusted."
+ ]
 }

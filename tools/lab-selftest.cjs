@@ -51,7 +51,21 @@ const { chromium } = require('playwright');
     runs.push(r);
     if (out) await page.screenshot({ path: `${out}_shift${shiftCm}.png` });
   }
-  let ok = true;
+  // Side view: marks placed so the turret pivot sits 4 cm further from the hull front than the sprite says.
+  const side = await page.evaluate(async () => {
+    const lab = window.lab;
+    const c = document.createElement('canvas'); c.width = 1000; c.height = 400;
+    await lab.loadRefData(c.toDataURL('image/png'), 'side-selftest.png');
+    lab.setRef({ mPerPx: 0.01, rot: 0, ox: 0, oy: 0 });
+    const a = Object.fromEntries(lab.anchors().map((x) => [x.id, x.at]));
+    const px = (x, y) => [x / 0.01 + 500, y / 0.01 + 200];
+    lab.setMarks({ hull_front: px(a.hull_front[0], 0), turret_pivot: px(a.turret_pivot[0] - 0.04, 0), ground: px(0, 1.2), turret_top: px(0, -1.15) });
+    const r = lab.compareSide();
+    return { pivot: r.parts.find((p) => p.id === 'turret_pivot')?.errCm, height: r.heightM };
+  });
+  const sideOk = Math.abs(side.pivot - 4) < 0.01 && Math.abs(side.height - 2.35) < 0.001;
+  console.log(`${sideOk ? 'PASS' : 'FAIL'} side view: turret pivot error ${side.pivot?.toFixed(2)} cm (expected 4.00), height ${side.height?.toFixed(3)} m (expected 2.350)`);
+  let ok = sideOk;
   for (const r of runs) {
     const partOk = Math.abs(r.partMin - r.shift) < 0.6 && Math.abs(r.partMax - r.shift) < 0.6;
     const outlineOk = r.maxCm <= r.shift + 2.5 && (r.shift === 0 ? r.maxCm <= 2.5 : r.maxCm >= r.shift - 2.5);

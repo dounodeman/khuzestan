@@ -20,8 +20,8 @@ function spriteLab(): Plugin {
         if (!m) return next();
         const dir = path.join(refsRoot, m[1]);
         if (req.method === 'POST' && m[2]) {
-          // Lab sidecars only (calibration, mask, marked points); they stay in git-ignored refs/.
-          if (!/\.(calib\.json|mask\.png|mask\.json|points\.json)$/.test(m[2])) { res.statusCode = 400; return res.end('bad name'); }
+          // Lab sidecars only (calibration, mask, marked points, compare results); they stay in git-ignored refs/.
+          if (!/\.(calib\.json|mask\.png|mask\.json|points\.json|compare\.json)$/.test(m[2])) { res.statusCode = 400; return res.end('bad name'); }
           const chunks: Buffer[] = [];
           req.on('data', (c: Buffer) => chunks.push(c));
           req.on('end', () => {
@@ -33,7 +33,7 @@ function spriteLab(): Plugin {
         }
         if (m[2]) return next();
         const all = fs.existsSync(dir) ? fs.readdirSync(dir).sort() : [];
-        const sidecar = /\.(calib\.json|mask\.png|mask\.json|points\.json)$/;
+        const sidecar = /\.(calib\.json|mask\.png|mask\.json|points\.json|compare\.json)$/;
         res.setHeader('Content-Type', 'application/json');
         res.end(JSON.stringify({
           images: all.filter((f) => /\.(png|jpe?g|gif|webp|svg)$/i.test(f) && !sidecar.test(f)),

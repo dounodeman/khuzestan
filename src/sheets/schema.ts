@@ -10,11 +10,14 @@
  */
 export type Conf = 'A' | 'B' | 'C' | 'X';
 
+/** Reference view that would raise a value's confidence (used by the report to rank missing references). */
+export type Needs = 'top' | 'side' | 'rear' | 'front' | 'detail';
+
 /** Alternative value from another source, kept when sources disagree (never averaged). */
 export interface AltValue<T = number> { value: T; src: string; conf?: Conf }
 
 /** A single tagged value. `reason` explains the choice when `alt` lists disagreeing sources. */
-export interface Tagged<T = number> { value: T; conf: Conf; src: string; alt?: AltValue<T>[]; reason?: string }
+export interface Tagged<T = number> { value: T; conf: Conf; src: string; alt?: AltValue<T>[]; reason?: string; needs?: Needs }
 
 /** Outline point: x, y and its tag. `smooth` makes the outline pass through it as a curve, not a corner. */
 export type OutlinePoint = [number, number, { conf: Conf; smooth?: boolean; src?: string }];
@@ -27,9 +30,10 @@ export interface Outline {
    *  full: complete closed outline. */
   mirror: 'half' | 'side' | 'full';
   /** What the outline is, which decides its draw layer and paint. */
-  role: 'hull' | 'turret' | 'fender' | 'skirt' | 'mantlet' | 'deck';
+  role: 'hull' | 'turret' | 'fender' | 'skirt' | 'mantlet' | 'deck' | 'fuselage' | 'boom' | 'wing' | 'fin' | 'canopy' | 'sponson' | 'engine_cowl';
   points: OutlinePoint[];
   src: string;
+  needs?: Needs;
   /** For `full` outlines on a real vehicle that is not symmetric: why (validator skips the symmetry test). */
   asymmetric_reason?: string;
 }
@@ -37,7 +41,9 @@ export interface Outline {
 export type PartKind =
   | 'hatch' | 'cupola' | 'periscope' | 'searchlight' | 'ventilator' | 'fuel_tank' | 'fuel_drum' | 'toolbox'
   | 'stowage' | 'spare_links' | 'log' | 'grille' | 'louvre' | 'exhaust' | 'mg' | 'headlight' | 'tow_hook'
-  | 'lifting_eye' | 'weld' | 'panel_line' | 'bolt' | 'marking' | 'aerial' | 'other';
+  | 'lifting_eye' | 'weld' | 'panel_line' | 'bolt' | 'marking' | 'aerial' | 'snorkel' | 'other'
+  // aircraft
+  | 'pylon' | 'rocket_pod' | 'atgm_rail' | 'skid' | 'engine_intake' | 'chin_turret' | 'glazing';
 
 export interface SheetPart {
   id: string;
@@ -69,6 +75,7 @@ export interface SheetPart {
   offset_reason?: string;
   conf: Conf;
   src: string;
+  needs?: Needs;
 }
 
 export interface RunningGear {
@@ -76,12 +83,12 @@ export interface RunningGear {
     x_from: number; x_to: number; y_centre: number; width: number;
     /** Track link pitch, metres. */
     link_pitch: number;
-    conf: Conf; src: string;
+    conf: Conf; src: string; needs?: Needs;
   };
   /** Road wheels, front to rear, with each wheel's own x so uneven spacing is explicit. */
-  road_wheels?: { x: number[]; y_centre: number; dia: number; width: number; conf: Conf; src: string };
+  road_wheels?: { x: number[]; y_centre: number; dia: number; width: number; conf: Conf; src: string; needs?: Needs };
   /** Wheeled vehicles: axle x positions front to rear. */
-  axles?: { x: number[]; y_centre: number; tyre_dia: number; tyre_width: number; conf: Conf; src: string };
+  axles?: { x: number[]; y_centre: number; tyre_dia: number; tyre_width: number; conf: Conf; src: string; needs?: Needs };
 }
 
 export interface GunFitting {
@@ -98,8 +105,40 @@ export interface Gun {
   dia: number;
   recoil: number;
   fittings: GunFitting[];
-  conf: Conf; src: string;
+  conf: Conf; src: string; needs?: Needs;
 }
+
+/** Helicopters: main rotor on the mast (hull frame), seen as blades plus a faint disc. */
+export interface Rotor {
+  mast: [number, number]; radius: number; blades: number;
+  /** Blade chord, metres. */
+  chord: number;
+  /** Rotation seen from above. */
+  spin: 'cw' | 'ccw';
+  conf: Conf; src: string; needs?: Needs;
+}
+
+/** Tail rotor, seen edge-on from above as a thin bar along x. */
+export interface TailRotor {
+  pos: [number, number]; dia: number; side: 'left' | 'right';
+  conf: Conf; src: string; needs?: Needs;
+}
+
+/** Everything the real vehicle has on its top surface, drawn or not, so no detail is silently dropped. */
+export interface InventoryItem {
+  id: string;
+  what: string;
+  /** drawn: a part or outline with this id exists; pending: confirmed to exist, position needs a reference;
+   *  unconfirmed: existence or 1980-correctness not confirmed; excluded: post-1980 or a different variant;
+   *  removed: was in the old sheet but does not belong on this vehicle. */
+  status: 'drawn' | 'pending' | 'unconfirmed' | 'excluded' | 'removed';
+  /** Part or outline id when drawn. */
+  part?: string;
+  conf: Conf; src: string; needs?: Needs;
+}
+
+/** What moved relative to the old approximate sheet (docs/vehicle_sheets_draft.md). */
+export interface DraftChange { what: string; before: string; after: string; src: string }
 
 export interface Reference {
   file: string; // name inside refs/<vehicle_id>/
@@ -113,6 +152,8 @@ export interface Reference {
   later_mods_visible?: boolean;
   notes?: string;
   src: string; // where the image came from (see docs/reference_sources.md)
+  /** License or terms as stated on the source page (docs/reference_sources.md rules apply). */
+  license: string;
 }
 
 export interface VehicleSheet {
@@ -124,19 +165,29 @@ export interface VehicleSheet {
   units: 'metres';
   axes: string;
   references: Reference[];
-  /** Real dimensions. Keys used by the validator: hull_len, width, overall_len. */
+  /** Real dimensions. Keys the validator checks against the geometry: hull_len, width (3% fail), overall_len,
+   *  track_centres, track_on_ground, barrel_len (aircraft: fuselage_len, rotor_dia). */
   dimensions: Record<string, Tagged>;
   outlines: Record<string, Outline>;
-  turret?: { pivot: [number, number]; ring_dia?: number; conf: Conf; src: string };
+  turret?: { pivot: [number, number]; ring_dia?: number; conf: Conf; src: string; needs?: Needs };
   gun?: Gun;
   running_gear: RunningGear;
+  rotor?: Rotor;
+  /** Second rotor for tandem-rotor helicopters (CH-47). */
+  rotor2?: Rotor;
+  tail_rotor?: TailRotor;
   parts: SheetPart[];
   /** Animation hooks, hull frame. */
   hooks: { exhaust: Tagged<Array<[number, number]>>; dust?: Tagged<Array<[number, number]>>; smoke?: Tagged<Array<[number, number]>> };
   /** Camo scheme ids (src/data/sprites/palette.ts), first is the default. */
   paint: { schemes: string[]; src: string };
+  /** Every top-surface detail of the real vehicle and what happened to it. */
+  detail_inventory: InventoryItem[];
+  changes_from_draft: DraftChange[];
   excluded_details: string[];
   open_questions: string[];
   /** Notes kept in the human-readable sheet. */
   notes?: string[];
+  /** Written critique of the latest render (what still looks wrong or generic). */
+  critique?: string[];
 }

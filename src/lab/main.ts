@@ -12,7 +12,8 @@ import { compile } from '../render/vector/compile';
 import { drawSprite, lodFor } from '../render/vector/render';
 import { compareSpec, measure, type Measured } from '../render/vector/measure';
 import type { Box, Pt } from '../render/vector/geometry';
-import { anchors, compare, thumbSimilarity, THRESHOLDS, type CompareResult } from './compare';
+import { anchors, compare, compareSide, sideAnchors, THRESHOLDS, type CompareResult, type PartError } from './compare';
+import { CONFUSABLE_IOU, confusability, roster } from './roster';
 import { groupXf } from '../render/vector/compile';
 
 const D2R = Math.PI / 180;
@@ -45,6 +46,8 @@ const S = {
   maskPoly: [] as Pt[], // image pixel coordinates
   markId: '',
   result: null as CompareResult | null,
+  sideResult: null as { parts: PartError[]; heightM: number; failures: string[] } | null,
+  confusion: null as Array<{ a: string; b: string; iou: number }> | null,
   ruler: null as [Pt, Pt] | null,
   calib: [] as Pt[], // image pixel coordinates
   ref: { img: null, name: '', fromRefs: false, show: true, above: true, opacity: 0.5, mPerPx: 0.01, rot: 0, ox: 0, oy: 0, calibratedTo: '', mask: null, maskApproved: false, showMask: true, marks: {} } as RefState,
@@ -138,7 +141,7 @@ function buildLeft() {
   const s = sprite();
   left.append(el('h1', { textContent: 'SPRITE LAB' }));
   left.append(el('h2', { textContent: 'Vehicle' }));
-  left.append(select(SPRITES.map((d) => [d.id, `${d.name} · ${d.id}`]), () => S.id, (v) => { S.id = v; S.scheme = ''; S.ref.img = null; S.calib = []; S.result = null; S.markId = ''; buildLeft(); buildRight(); buildCompare(); loadRefList(); }));
+  left.append(select(SPRITES.map((d) => [d.id, `${d.name} · ${d.id}`]), () => S.id, (v) => { S.id = v; S.scheme = ''; S.ref.img = null; S.calib = []; S.result = null; S.sideResult = null; S.markId = ''; buildLeft(); buildRight(); buildCompare(); loadRefList(); }));
   left.append(el('div', { className: 'hint' }, `status: ${s.status}`, el('span', { className: 'badge', textContent: s.kind })));
 
   left.append(el('h2', { textContent: 'View' }));
@@ -281,13 +284,13 @@ async function loadRefImage(src: string, name: string, fromRefs: boolean) {
   if (fromRefs) {
     const cal = await fetchJson<{ mPerPx: number; rot: number; ox: number; oy: number; calibrated_to?: string }>(refUrl(`${name}.calib.json`));
     if (cal) { r.mPerPx = cal.mPerPx; r.rot = cal.rot; r.ox = cal.ox; r.oy = cal.oy; r.calibratedTo = cal.calibrated_to ?? ''; }
-    const mk = await fetchJson<Record<string, Pt>>(refUrl(`${name}.points.json`));
-    if (mk) r.marks = mk;
+    const mk = await fetchJson<{ marks_px?: Record<string, Pt> } & Record<string, unknown>>(refUrl(`${name}.points.json`));
+    if (mk) r.marks = (mk.marks_px ?? mk) as Record<string, Pt>;
     const meta = await fetchJson<{ approved: boolean }>(refUrl(`${name}.mask.json`));
     const mi = meta ? await loadImage(refUrl(`${name}.mask.png`) + `?t=${Date.now()}`) : null;
     if (mi) { r.mask = el('canvas', { width: mi.naturalWidth, height: mi.naturalHeight }); r.mask.getContext('2d')!.drawImage(mi, 0, 0); r.maskApproved = !!meta?.approved; }
   }
-  S.result = null;
+  S.result = null; S.sideResult = null;
   buildRef(); buildCompare(); dirty();
 }
 
@@ -344,11 +347,35 @@ function marksWorld(): Record<string, Pt> {
   return out;
 }
 
+/** View named by the reference file: top, side, rear, front or detail (unclear names count as unknown). */
+function refView(name = S.ref.name): string {
+  const m = name.toLowerCase().match(/^(top|side|rear|front)(?=[-_. ]|\d|$)/) ?? name.toLowerCase().match(/^(detail)-/);
+  return m ? m[1] : 'unknown';
+}
+
 function runCompare() {
   const r = S.ref;
+  if (refView() === 'side') {
+    S.sideResult = compareSide(sprite(), marksWorld());
+    S.result = null;
+    buildCompare();
+    return S.sideResult;
+  }
+  S.sideResult = null;
   S.result = compare(sprite(), r.mask && r.maskApproved ? r.mask : null, r.img ? { mPerPx: r.mPerPx, rot: r.rot, ox: r.ox, oy: r.oy } : null, marksWorld());
   buildCompare();
   return S.result;
+}
+
+function saveMarks() {
+  const r = S.ref;
+  return saveSidecar('.points.json', JSON.stringify({ view: refView(), image: r.name, calibrated_to: r.calibratedTo, marks_px: r.marks, marks_m: marksWorld() }, null, 1));
+}
+
+function saveResults() {
+  const res = S.sideResult ?? S.result;
+  if (!res) return;
+  return saveSidecar('.compare.json', JSON.stringify({ view: refView(), image: S.ref.name, at: new Date().toISOString(), calibrated_to: S.ref.calibratedTo, mask_approved: S.ref.maskApproved, thresholds: THRESHOLDS, result: res }, null, 1));
 }
 
 function buildCompare() {
@@ -360,7 +387,41 @@ function buildCompare() {
       button('Side by side', () => { S.compareMode = 'side'; }, () => S.compareMode === 'side')),
     check('Weak-data markers (conf C/X)', () => S.weak, (v) => { S.weak = v; }),
   ];
-  if (!r.img) { kids.push(el('div', { className: 'hint', textContent: 'Load a top view from refs/ to compare.' })); cmpBox.replaceChildren(...kids); sync(); return; }
+  kids.push(el('div', { className: 'btns' }, button('64 px confusability, all vehicles', () => { S.confusion = confusability(roster(), 64); buildCompare(); })));
+  if (S.confusion) {
+    const flagged = S.confusion.filter((c) => c.iou >= CONFUSABLE_IOU);
+    const t = el('table', { className: 'spec' });
+    for (const c of S.confusion.filter((x) => x.a === S.id || x.b === S.id).slice(0, 5)) {
+      const bad = c.iou >= CONFUSABLE_IOU;
+      t.append(el('tr', { className: bad ? 'fail' : '' }, el('td', { textContent: `${c.a} / ${c.b}` }), el('td', { textContent: c.iou.toFixed(3) }), el('td', { textContent: bad ? 'CHECK' : 'ok', className: bad ? 'fail' : 'pass' })));
+    }
+    kids.push(el('div', { className: 'hint', textContent: `Most similar silhouettes to ${S.id} at 64 px (IoU; ${CONFUSABLE_IOU}+ needs distinguishing features). Pairs flagged across all vehicles: ${flagged.length}.` }), t);
+  }
+  if (!r.img) { kids.push(el('div', { className: 'hint', textContent: 'Load a top or side view from refs/ to compare.' })); cmpBox.replaceChildren(...kids); sync(); return; }
+  const view = refView();
+  kids.push(el('div', { className: 'hint', textContent: `View from file name: ${view}${view === 'unknown' ? ' (rename to top-, side-, rear-, front- or detail-<what>)' : ''}` }));
+  if (view === 'side') {
+    const ids = sideAnchors(sprite());
+    if (!ids.find((a) => a.id === S.markId)) S.markId = 'hull_front';
+    kids.push(
+      el('div', { className: 'hint', textContent: 'Side view: mark hull_front first; positions are compared as distances from it. Mark ground and turret_top for the height.' }),
+      select(ids.map((a) => [a.id, `${r.marks[a.id] ? '✓ ' : ''}${a.id}${isFinite(a.at[0]) ? ` (${a.conf ?? '–'}) x ${a.at[0].toFixed(2)}` : ''}`] as [string, string]), () => S.markId, (v) => { S.markId = v; }),
+      el('div', { className: 'btns' },
+        button('Mark on image', () => { S.tool = 'mark'; }, () => S.tool === 'mark'),
+        button('Remove mark', () => { delete r.marks[S.markId]; buildCompare(); }),
+        button('Save marks', () => { saveMarks(); })),
+      el('div', { className: 'btns' }, button('Compute', () => { runCompare(); }), button('Save results', () => { saveResults(); })),
+    );
+    const sr = S.sideResult;
+    if (sr) {
+      const t = el('table', { className: 'spec' });
+      t.append(el('tr', {}, el('td', { textContent: 'Height ground to turret_top' }), el('td', { textContent: isFinite(sr.heightM) ? `${sr.heightM.toFixed(3)} m` : '–' }), el('td')));
+      for (const p of [...sr.parts].sort((a, b) => b.errCm - a.errCm)) t.append(el('tr', { className: p.counted && !p.pass ? 'fail' : '' }, el('td', { textContent: `${p.id} (${p.conf ?? '–'})` }), el('td', { textContent: `${p.errCm.toFixed(1)} cm` }),
+        el('td', { textContent: p.counted ? (p.pass ? 'PASS' : 'FAIL') : '', className: p.counted ? (p.pass ? 'pass' : 'fail') : '' })));
+      kids.push(t, el('div', { className: 'hint', textContent: sr.failures.length ? `Failures: ${sr.failures.join('; ')}` : 'All counted parts pass.' }));
+    }
+    cmpBox.replaceChildren(...kids); sync(); return;
+  }
   kids.push(
     el('div', { className: 'hint', textContent: `Mask: ${r.mask ? (r.maskApproved ? 'approved' : 'drawn, not approved') : 'none'} · marks: ${Object.keys(r.marks).length}` }),
     el('div', { className: 'btns' },
@@ -381,8 +442,8 @@ function buildCompare() {
     el('div', { className: 'btns' },
       button('Mark part on image', () => { S.tool = 'mark'; }, () => S.tool === 'mark'),
       button('Remove mark', () => { delete r.marks[S.markId]; buildCompare(); }),
-      button('Save marks', () => { saveSidecar('.points.json', JSON.stringify(r.marks, null, 1)); })),
-    el('div', { className: 'btns' }, button('Compute', () => { runCompare(); })),
+      button('Save marks', () => { saveMarks(); })),
+    el('div', { className: 'btns' }, button('Compute', () => { runCompare(); }), button('Save results', () => { saveResults(); })),
   );
   const res = S.result;
   if (res) {
@@ -508,16 +569,17 @@ function drawMarks(ctx: CanvasRenderingContext2D, def: SpriteDef) {
   if (!S.ref.img || !S.ref.show || (!Object.keys(S.ref.marks).length && S.tool !== 'mark')) return;
   const marks = marksWorld();
   ctx.lineWidth = 1.5; ctx.font = '10px "Share Tech Mono", monospace';
-  for (const a of anchors(def)) {
+  const side = refView() === 'side';
+  for (const a of side ? sideAnchors(def) : anchors(def)) {
     const mk = marks[a.id];
     if (!mk && !(S.tool === 'mark' && a.id === S.markId)) continue;
     const pa = toScreen(hullToWorld(a.at));
-    ctx.strokeStyle = '#86ff6e'; ctx.beginPath(); ctx.arc(pa[0], pa[1], 4, 0, 6.3); ctx.stroke();
+    if (!side) { ctx.strokeStyle = '#86ff6e'; ctx.beginPath(); ctx.arc(pa[0], pa[1], 4, 0, 6.3); ctx.stroke(); }
     if (mk) {
       const pm = toScreen(mk);
       ctx.strokeStyle = '#e9a31a';
       ctx.beginPath(); ctx.moveTo(pm[0] - 5, pm[1] - 5); ctx.lineTo(pm[0] + 5, pm[1] + 5); ctx.moveTo(pm[0] + 5, pm[1] - 5); ctx.lineTo(pm[0] - 5, pm[1] + 5); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pm[0], pm[1]); ctx.stroke();
+      if (!side) { ctx.beginPath(); ctx.moveTo(pa[0], pa[1]); ctx.lineTo(pm[0], pm[1]); ctx.stroke(); }
       if (a.id === S.markId || Object.keys(marks).length <= 12) { ctx.fillStyle = '#e9a31a'; ctx.fillText(a.id, pm[0] + 7, pm[1] - 4); }
     }
   }
@@ -706,27 +768,39 @@ function renderThumbs() {
   });
 }
 
-/** All vehicles at the same scale, so relative sizes can be compared. */
+/**
+ * Every vehicle at the same scale, so relative sizes can be compared: sheet-generated sprites, and the game's
+ * legacy sprite for vehicles without a sheet yet. Under each, the same vehicle at game zoom (max and default).
+ */
 function contactSheet(ppm = 14): HTMLCanvasElement {
-  const ms = SPRITES.map((d) => ({ d, m: measure(d) }));
-  const maxL = Math.max(...ms.map(({ m }) => m.overallBox.x1 - m.overallBox.x0));
-  const maxW = Math.max(...ms.map(({ m }) => m.overallBox.y1 - m.overallBox.y0));
-  const cw = Math.ceil(maxL * ppm) + 30, ch = Math.ceil(maxW * ppm) + 46;
-  const cols = Math.min(4, ms.length), rows = Math.ceil(ms.length / cols);
-  const c = el('canvas', { width: cols * cw, height: rows * ch + 40 });
+  const es = roster();
+  const maxL = Math.max(...es.map((e) => e.box.x1 - e.box.x0)), maxW = Math.max(...es.map((e) => e.box.y1 - e.box.y0));
+  const gameH = Math.ceil(maxW * GAME_PPM.max) + 8;
+  const cw = Math.ceil(maxL * ppm) + 30, ch = Math.ceil(maxW * ppm) + 46 + gameH;
+  const cols = Math.min(5, es.length), rows = Math.ceil(es.length / cols);
+  const c = el('canvas', { width: cols * cw, height: rows * ch + 44 });
   const ctx = c.getContext('2d')!;
   ctx.fillStyle = '#b5a57a'; ctx.fillRect(0, 0, c.width, c.height);
-  ms.forEach(({ d, m }, i) => {
-    const cell = el('canvas', { width: cw, height: ch - 20 });
-    renderAt(cell, ppm, false, d, 0, '#b5a57a');
+  const drawAt = (e: (typeof es)[number], x: number, y: number, w: number, h: number, k: number) => {
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    ctx.translate(x + w / 2 - ((e.box.x0 + e.box.x1) / 2) * k, y + h / 2 - ((e.box.y0 + e.box.y1) / 2) * k);
+    ctx.scale(k, k);
+    e.draw(ctx, k);
+    ctx.restore();
+  };
+  es.forEach((e, i) => {
     const x = (i % cols) * cw, y = Math.floor(i / cols) * ch;
-    ctx.drawImage(cell, x, y + 20);
-    ctx.fillStyle = '#16140f'; ctx.font = '12px "Share Tech Mono", monospace';
-    ctx.fillText(`${d.name}  ${(m.values.overallLength as number).toFixed(2)} × ${(m.values.width as number).toFixed(2)} m`, x + 8, y + 15);
+    drawAt(e, x, y + 20, cw, ch - 20 - gameH, ppm);
+    drawAt(e, x, y + ch - gameH, cw * 0.6, gameH, GAME_PPM.max);
+    drawAt(e, x + cw * 0.6, y + ch - gameH, cw * 0.4, gameH, GAME_PPM.default);
+    ctx.fillStyle = e.source === 'sheet' ? '#16140f' : '#6b2a1a'; ctx.font = '12px "Share Tech Mono", monospace';
+    ctx.fillText(`${e.name}${e.source === 'legacy' ? ' (legacy sprite)' : ''}  ${(e.box.x1 - e.box.x0).toFixed(2)} × ${(e.box.y1 - e.box.y0).toFixed(2)} m`, x + 8, y + 15);
   });
   ctx.fillStyle = '#16140f';
   ctx.fillRect(10, c.height - 18, 5 * ppm, 5);
-  ctx.font = '11px "Share Tech Mono", monospace'; ctx.fillText(`5 m · ${ppm} px/m`, 10, c.height - 24);
+  ctx.font = '11px "Share Tech Mono", monospace';
+  ctx.fillText(`5 m · ${ppm} px/m · lower row: game zoom ${GAME_PPM.max} and ${GAME_PPM.default} px/m · red labels: legacy game sprites (no vehicle sheet yet)`, 10, c.height - 24);
   return c;
 }
 
@@ -841,14 +915,10 @@ window.lab = {
   setMarks(m: Record<string, Pt>) { S.ref.marks = m; buildCompare(); render(); },
   compare: () => runCompare(),
   anchors: () => anchors(sprite()),
-  confusable(size = 64, limit = 0.9) {
-    const out: Array<{ a: string; b: string; iou: number }> = [];
-    for (let i = 0; i < SPRITES.length; i++) for (let j = i + 1; j < SPRITES.length; j++) {
-      const iou = thumbSimilarity(SPRITES[i], SPRITES[j], size);
-      if (iou >= limit) out.push({ a: SPRITES[i].id, b: SPRITES[j].id, iou });
-    }
-    return out;
-  },
+  confusable: (size = 64) => confusability(roster(), size),
+  compareSide: () => runCompare(),
+  saveMarks: () => saveMarks(),
+  saveResults: () => saveResults(),
   view: () => { render(); return view.toDataURL('image/png'); },
   contactSheet: (ppm?: number) => contactSheet(ppm).toDataURL('image/png'),
   thumb: (size: number, sil = false) => { const m = measure(sprite()); const L = Math.max(m.overallBox.x1 - m.overallBox.x0, m.overallBox.y1 - m.overallBox.y0); const c = el('canvas', { width: size, height: size }); renderAt(c, size / (L * 1.05), sil); return c.toDataURL('image/png'); },

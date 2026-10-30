@@ -97,7 +97,27 @@ export function generateSprite(sh: VehicleSheet): SpriteDef {
     parts.push(part);
   }
 
+  // Rotors (helicopters)
   const groups: SpriteDef['groups'] = {};
+  [sh.rotor, sh.rotor2].forEach((r, i) => {
+    if (!r) return;
+    const g = i ? 'rotor2' : 'rotor';
+    groups[g] = { pivot: r.mast, rotate: 'rotor' };
+    parts.push({ id: `${g}_disc`, layer: 'rotor', group: g, fill: RUNNING.disc.fill, stroke: null, shade: 'flat', conf: r.conf, note: r.src, shape: { circle: [0, 0, r.radius] } });
+    const chord = r.chord;
+    for (let k = 0; k < r.blades; k++) {
+      const a = (k / r.blades) * 2 * Math.PI + (i ? Math.PI / r.blades : 0), c = Math.cos(a), sn = Math.sin(a);
+      const pts = [[0, -chord / 2], [r.radius, -chord / 2], [r.radius, chord / 2], [0, chord / 2]].map(([u, v]) => [u * c - v * sn, u * sn + v * c]);
+      parts.push({ id: `${g}_blade${k + 1}`, layer: 'rotor', group: g, fill: RUNNING.blade.fill, shade: RUNNING.blade.shade, conf: r.conf,
+        shape: { path: pts.map(([x, y], j) => (j ? ['L', x, y] : ['M', x, y]) as PathCmd) } });
+    }
+  });
+  if (sh.tail_rotor) {
+    const t = sh.tail_rotor, th = t.dia * RUNNING.tailRotor.blurOfDia;
+    parts.push({ id: 'tail_rotor', layer: 'rotor', fill: RUNNING.tailRotor.fill, stroke: null, shade: 'flat', conf: t.conf, note: `${t.side} side · ${t.src}`,
+      shape: { rect: [t.pos[0] - t.dia / 2, t.pos[1] - th / 2, t.dia, th] } });
+  }
+
   if (sh.turret) groups.turret = { pivot: sh.turret.pivot, rotate: 'turret' };
   if (sh.gun) groups.barrel = { parent: sh.turret ? 'turret' : 'hull', pivot: [0, 0], recoil: sh.gun.recoil };
 

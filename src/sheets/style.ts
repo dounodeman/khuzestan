@@ -15,6 +15,13 @@ export const OUTLINE_STYLE: Record<Outline['role'], Style> = {
   deck: { layer: 'hullDetail', fill: 'BASE', shade: 'recess', lod: 1 },
   turret: { layer: 'turret', fill: 'BASE', shade: 'dome', lod: 0, ao: 0.1 },
   mantlet: { layer: 'turret', fill: 'BASE', shade: 'dome', lod: 1, ao: 0.04 },
+  fuselage: { layer: 'hull', fill: 'BASE', shade: 'dome', lod: 0 },
+  boom: { layer: 'hull', fill: 'BASE', shade: 'cylinder', lod: 0 },
+  wing: { layer: 'hull', fill: 'BASE', shade: 'plate', lod: 0 },
+  fin: { layer: 'hull', fill: 'BASE', shade: 'plate', lod: 0 },
+  sponson: { layer: 'hull', fill: 'BASE', shade: 'cylinder', lod: 0 },
+  canopy: { layer: 'hullDetail', fill: 'GLASS', shade: 'dome', lod: 0 },
+  engine_cowl: { layer: 'hullDetail', fill: 'BASE', shade: 'dome', lod: 1, ao: 0.05 },
 };
 
 export const PART_STYLE: Record<PartKind, Style> = {
@@ -41,6 +48,14 @@ export const PART_STYLE: Record<PartKind, Style> = {
   bolt: { layer: 'hullDetail', fill: 'STEEL', shade: 'flat', lod: 3, stroke: null },
   marking: { layer: 'markings', fill: 'STENCIL', shade: 'flat', lod: 1 },
   aerial: { layer: 'hullDetail', fill: 'STEEL', shade: 'flat', lod: 2 },
+  snorkel: { layer: 'hullDetail', fill: 'BASE', shade: 'cylinder', lod: 1 },
+  pylon: { layer: 'hullDetail', fill: 'BASE', shade: 'plate', lod: 1 },
+  rocket_pod: { layer: 'hullDetail', fill: 'STEEL', shade: 'cylinder', lod: 1 },
+  atgm_rail: { layer: 'hullDetail', fill: 'STEEL', shade: 'cylinder', lod: 1 },
+  skid: { layer: 'running', fill: 'STEEL', shade: 'cylinder', lod: 1 },
+  engine_intake: { layer: 'hullDetail', fill: 'INTERIOR', shade: 'recess', lod: 1 },
+  chin_turret: { layer: 'hullDetail', fill: 'STEEL', shade: 'dome', lod: 1 },
+  glazing: { layer: 'hullDetail', fill: 'GLASS', shade: 'dome', lod: 1 },
   other: { layer: 'hullDetail', fill: 'BASE', shade: 'plate', lod: 1 },
 };
 
@@ -59,4 +74,8 @@ export const RUNNING = {
   tyre: { fill: 'RUBBER', shade: 'plate' as Shade, cornerOfWidth: 0.3 },
   barrel: { fill: 'GUN', shade: 'cylinder' as Shade },
   fitting: { fill: 'GUN', shade: 'cylinder' as Shade, cornerOfDia: 0.25 },
+  /** Rotor blades and the disc tint for motion blur (chord comes from the sheet). */
+  blade: { fill: 'STEEL', shade: 'flat' as Shade },
+  disc: { fill: 'rgba(20,20,16,0.12)' },
+  tailRotor: { fill: 'rgba(20,20,16,0.45)', blurOfDia: 0.06 }, // edge-on blur bar thickness (appearance)
 };

@@ -1,7 +1,7 @@
 // Vehicle sheet validator: npm run check-sheets. Exits 1 on any error; warnings are reported but pass.
 import fs from 'node:fs';
 import path from 'node:path';
-import { DOC_PATH, REFS_DIR, confSummary, loadSheets, renderDoc, validate, type Issue } from './sheets-lib';
+import { DOC_PATH, REFS_DIR, confSummary, crossCheck, loadSheets, renderDoc, validate, type Issue, type PointsFile } from './sheets-lib';
 
 const sheets = loadSheets();
 const issues: Issue[] = [];
@@ -9,6 +9,8 @@ for (const s of sheets) {
   const dir = path.join(REFS_DIR, s.id);
   const present = fs.existsSync(dir) ? fs.readdirSync(dir) : null;
   issues.push(...validate(s, present));
+  const points: PointsFile[] = (present ?? []).filter((f) => f.endsWith('.points.json')).map((f) => JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')));
+  issues.push(...crossCheck(s, points));
 }
 const doc = renderDoc(sheets);
 if (!fs.existsSync(DOC_PATH) || fs.readFileSync(DOC_PATH, 'utf8') !== doc) {

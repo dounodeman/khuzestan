@@ -14,7 +14,10 @@
     "aimatch": "tsx tools/ai-match.ts",
     "check-sheets": "tsx tools/check-sheets.ts",
     "sheets-doc": "tsx tools/sheets-doc.ts",
-    "lab-selftest": "node tools/lab-selftest.cjs"
+    "lab-selftest": "node tools/lab-selftest.cjs",
+    "refs-inventory": "tsx tools/refs-inventory.ts",
+    "vehicle-report": "node tools/vehicle-report.cjs",
+    "check-sheets:selftest": "tsx tools/sheets-selftest.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

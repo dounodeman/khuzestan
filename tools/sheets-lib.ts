@@ -88,13 +88,24 @@ function renderSheet(s: VehicleSheet): string[] {
   if (rg.axles) o.push(`- Axles: x ${rg.axles.x.join(', ')}, centre y ±${rg.axles.y_centre}, tyre ${rg.axles.tyre_dia} × ${rg.axles.tyre_width} (${rg.axles.conf}): ${rg.axles.src}`);
   o.push('', '### Parts', '', '| Part | Kind | Frame | Geometry | Conf | Source |', '|---|---|---|---|---|---|');
   for (const p of s.parts) o.push(`| ${p.id} | ${p.kind} | ${p.frame} | ${partGeom(p)} | ${p.conf} | ${p.src} |`);
+  if (s.rotor || s.rotor2 || s.tail_rotor) {
+    o.push('', '### Rotors', '');
+    for (const [k, r] of [['main', s.rotor], ['second', s.rotor2]] as const) if (r) o.push(`- ${k} rotor: mast ${pt(r.mast)}, radius ${r.radius}, ${r.blades} blades, chord ${r.chord}, spin ${r.spin} from above (${r.conf}): ${r.src}`);
+    if (s.tail_rotor) o.push(`- tail rotor: ${pt(s.tail_rotor.pos)}, diameter ${s.tail_rotor.dia}, ${s.tail_rotor.side} side (${s.tail_rotor.conf}): ${s.tail_rotor.src}`);
+  }
   o.push('', '### Hooks', '');
   for (const [k, h] of Object.entries(s.hooks)) if (h) o.push(`- ${k}: ${h.value.map((p) => pt(p as P)).join(' ')} (${h.conf}): ${h.src}`);
+  o.push('', '### Detail inventory', '', '| Detail | What | Status | Conf | Source |', '|---|---|---|---|---|');
+  for (const d of s.detail_inventory ?? []) o.push(`| ${d.id} | ${d.what} | ${d.status}${d.part && d.part !== d.id ? ` (${d.part})` : ''} | ${d.conf} | ${d.src} |`);
+  o.push('', '### Changes from the old sheet', '');
+  if (!s.changes_from_draft?.length) o.push('- none');
+  else { o.push('| What | Before | After | Source |', '|---|---|---|---|'); for (const c of s.changes_from_draft) o.push(`| ${c.what} | ${c.before} | ${c.after} | ${c.src} |`); }
   o.push('', '### Excluded details (post-1980 or unconfirmed for 1980)', '');
   o.push(...(s.excluded_details.length ? s.excluded_details.map((e) => `- ${e}`) : ['- none recorded']));
   o.push('', '### Open questions', '');
   o.push(...(s.open_questions.length ? s.open_questions.map((e) => `- ${e}`) : ['- none']));
   if (s.notes?.length) o.push('', '### Notes', '', ...s.notes.map((n) => `- ${n}`));
+  if (s.critique?.length) o.push('', '### Critique of the latest render', '', ...s.critique.map((n) => `- ${n}`));
   o.push('');
   return o;
 }
@@ -124,9 +135,10 @@ function walkTags(s: VehicleSheet, visit: (c: Conf) => void) {
   for (const g of Object.values(s.running_gear)) if (g) fn(g.conf);
   for (const p of s.parts) fn(p.conf);
   for (const h of Object.values(s.hooks)) if (h) fn(h.conf);
+  for (const r of [s.rotor, s.rotor2, s.tail_rotor]) if (r) fn(r.conf);
 }
 
-const META_KEYS = new Set(['id', 'name', 'variant', 'status', 'kind', 'units', 'axes', 'excluded_details', 'open_questions', 'notes', 'paint']);
+const META_KEYS = new Set(['id', 'name', 'variant', 'status', 'kind', 'units', 'axes', 'excluded_details', 'open_questions', 'notes', 'paint', 'critique']);
 
 /** Any number (or number array) must sit under an object carrying conf + src, or be an outline point with its own tag. */
 function checkTags(s: VehicleSheet, issues: Issue[]) {
@@ -145,7 +157,18 @@ function checkTags(s: VehicleSheet, issues: Issue[]) {
   for (const [k, v] of Object.entries(s)) {
     if (META_KEYS.has(k)) continue;
     if (k === 'references') {
-      s.references.forEach((r, i) => { if (!r.src?.trim()) bad(`references[${i}] (${r.file}): missing src`); });
+      s.references.forEach((r, i) => {
+        if (!r.src?.trim()) bad(`references[${i}] (${r.file}): missing src`);
+        if (!r.license?.trim()) bad(`references[${i}] (${r.file}): missing license note (see docs/reference_sources.md)`);
+      });
+      continue;
+    }
+    if (k === 'detail_inventory') {
+      s.detail_inventory.forEach((d) => { if (!isTag(d as unknown as Record<string, unknown>)) bad(`detail_inventory.${d.id}: missing conf or src`); });
+      continue;
+    }
+    if (k === 'changes_from_draft') {
+      s.changes_from_draft.forEach((c, i) => { if (!c.src?.trim()) bad(`changes_from_draft[${i}] (${c.what}): missing src`); });
       continue;
     }
     if (k === 'outlines') {
@@ -264,21 +287,136 @@ export function validate(s: VehicleSheet, refsPresent: string[] | null): Issue[]
     if (dp > 3) warn(`overall_len: geometry measures ${overall.toFixed(3)} m, stated ${s.dimensions.overall_len.value} m (${dp.toFixed(1)}% off)`);
   }
 
-  // Confidence A needs a calibrated plan view.
+  // Further published dimensions against the geometry.
+  const dim = (k: string) => s.dimensions[k]?.value;
+  const chk = (label: string, measuredV: number, statedKey: string, level: 'error' | 'warn' = 'error') => {
+    const v = dim(statedKey);
+    if (v === undefined || !isFinite(measuredV)) return;
+    const dp = pct(measuredV, v);
+    if (dp > 3) issues.push({ level, vehicle: s.id, msg: `${label}: geometry gives ${measuredV.toFixed(3)} m, ${statedKey} is ${v} m (${dp.toFixed(1)}% off)` });
+  };
+  if (t) {
+    chk('track centre spacing (2 × y_centre)', 2 * t.y_centre, 'track_centres');
+    chk('track width', t.width, 'track_width');
+  }
+  const rw = s.running_gear.road_wheels;
+  if (rw && dim('track_on_ground') !== undefined && rw.x.length > 1) {
+    const span = Math.max(...rw.x) - Math.min(...rw.x);
+    if (span > dim('track_on_ground')!) err(`road wheels: first-to-last centre span ${span.toFixed(2)} m exceeds the ${dim('track_on_ground')} m track on ground`);
+  }
+  if (rw) {
+    const sorted = [...rw.x].sort((p, q) => q - p);
+    if (sorted.join() !== rw.x.join()) err('road_wheels.x must run front to rear');
+  }
+  if (s.gun && dim('barrel_len') !== undefined && s.gun.muzzle_x - s.gun.from_x > dim('barrel_len')! * 1.03) {
+    err(`gun: visible barrel ${(s.gun.muzzle_x - s.gun.from_x).toFixed(2)} m is longer than the ${dim('barrel_len')} m tube`);
+  }
+  if (s.rotor) chk('rotor diameter', 2 * s.rotor.radius, 'rotor_dia');
+  const fus = Object.entries(s.outlines).filter(([, ol]) => ['fuselage', 'boom'].includes(ol.role)).flatMap(([id]) => polys[id] ?? []);
+  if (fus.length) { const fe = extent(fus); chk('fuselage length', fe.x1 - fe.x0, 'fuselage_len'); }
+  if (s.kind === 'heli') {
+    if (!s.rotor) err('helicopter without a main rotor (mast, radius, blades, chord, spin)');
+    if (!s.tail_rotor && !s.rotor2) err('helicopter without a tail rotor (or a second rotor for tandem designs)');
+  }
+
+  // Confidence A needs a calibrated plan view; values from perspective photos stay C.
   const calibratedTop = s.references.some((r) => r.view === 'top' && !r.perspective && r.calibrated_to);
   let hasA = false; walkTags(s, (c) => { if (c === 'A') hasA = true; });
   if (hasA && !calibratedTop) err('conf A used but no calibrated, non-perspective top view is listed in references');
+  const persp = s.references.filter((r) => r.perspective).map((r) => r.file);
+  if (persp.length) {
+    const visit = (v: unknown, at: string) => {
+      if (Array.isArray(v)) { v.forEach((x, i) => visit(x, `${at}[${i}]`)); return; }
+      if (!v || typeof v !== 'object') return;
+      const o = v as Record<string, unknown>;
+      if ((o.conf === 'A' || o.conf === 'B') && typeof o.src === 'string' && persp.some((f) => (o.src as string).includes(f))) {
+        err(`${at}: measured on a perspective photo but tagged ${o.conf as string}; perspective values are conf C`);
+      }
+      for (const [k, x] of Object.entries(o)) visit(x, `${at}.${k}`);
+    };
+    visit(s, s.id);
+  }
+  for (const r of s.references) {
+    if (r.view === 'top' && r.perspective) warn(`reference ${r.file}: a perspective photo is not a plan view; only ratios parallel to the image plane, conf C`);
+    if (!r.calibrated_to && !r.perspective && r.view !== 'detail') warn(`reference ${r.file}: not calibrated yet (record the real dimension used)`);
+  }
+
+  // Detail inventory: drawn items exist, excluded or removed ones are not drawn, generated parts are listed.
+  const ids = new Set<string>([...Object.keys(s.outlines), ...s.parts.map((p) => p.id)]);
+  if (s.running_gear.tracks) ids.add('track');
+  if (s.running_gear.road_wheels) ids.add('road_wheels');
+  if (s.running_gear.axles) ids.add('tyres');
+  if (s.gun) { ids.add('barrel'); for (const f of s.gun.fittings) ids.add(f.kind); }
+  if (s.rotor) ids.add('rotor'); if (s.tail_rotor) ids.add('tail_rotor');
+  if (!s.detail_inventory?.length) err('detail_inventory is empty: list every top-surface detail of the real vehicle and its status');
+  const listed = new Set<string>();
+  for (const d of s.detail_inventory ?? []) {
+    const key = d.part ?? d.id;
+    listed.add(key);
+    if (d.status === 'drawn' && !ids.has(key)) err(`detail_inventory.${d.id}: marked drawn but no part, outline or gear "${key}" exists`);
+    if ((d.status === 'excluded' || d.status === 'removed') && ids.has(d.part ?? d.id)) err(`detail_inventory.${d.id}: ${d.status} but still drawn`);
+  }
+  for (const id of ids) if (!listed.has(id) && !s.parts.find((p) => p.id === id && p.kind === 'marking')) warn(`"${id}" is drawn but not listed in detail_inventory`);
+  if (!s.changes_from_draft) err('changes_from_draft missing (use [] when nothing changed)');
 
   // Later modifications visible but nothing excluded.
   if (s.references.some((r) => r.later_mods_visible) && !s.excluded_details.length) warn('a reference shows later modifications but excluded_details is empty');
 
   // Reference intake.
   const views = new Set(s.references.map((r) => r.view));
-  const need = ['top', 'side', 'rear'];
+  const need = s.kind === 'heli' || s.kind === 'drone' ? ['top', 'side'] : ['top', 'side', 'rear'];
   const missing = need.filter((v) => !views.has(v as never) && !(v === 'rear' && s.references.some((r) => r.view === 'detail' && /deck/i.test(r.detail_of ?? ''))));
-  if (missing.length) warn(`references missing required views: ${missing.join(', ')} (rear may be an engine-deck detail)`);
-  if (refsPresent) for (const r of s.references) if (!refsPresent.includes(r.file)) warn(`reference ${r.file} is listed but not in refs/${s.id}/ on this machine`);
+  if (missing.length) warn(`references missing required views: ${missing.join(', ')}${need.includes('rear') ? ' (rear may be an engine-deck detail)' : ''}`);
+  if (s.kind === 'wheeled' && !s.references.some((r) => r.view === 'side' && !r.perspective)) warn('wheeled vehicle: needs a non-perspective side view for axle positions');
+  if (refsPresent) {
+    for (const r of s.references) if (!refsPresent.includes(r.file)) warn(`reference ${r.file} is listed but not in refs/${s.id}/ on this machine`);
+    for (const f of refsPresent) {
+      const m = f.match(/^(.*)\.calib\.json$/);
+      if (!m) continue;
+      const r = s.references.find((x) => x.file === m[1]);
+      if (!r) warn(`refs/${s.id}/${m[1]} is calibrated in the lab but not listed in references`);
+      else if (!r.calibrated_to) err(`reference ${r.file}: calibrated in the lab but calibrated_to is empty in the sheet`);
+    }
+  }
   return issues;
+}
+
+/** Marks saved by the Sprite Lab (refs/<id>/<image>.points.json). */
+export interface PointsFile { view: string; image: string; calibrated_to?: string; marks_px: Record<string, [number, number]>; marks_m: Record<string, [number, number]> }
+
+/**
+ * Cross-check top and side views from their lab marks: hull length (hull_front - hull_rear), turret pivot from
+ * the front, and the x of every anchor marked in both must agree within 3% of the hull length; the side-view
+ * height (ground - turret_top) must agree with dimensions.height within 3%.
+ */
+export function crossCheck(s: VehicleSheet, files: PointsFile[]): Issue[] {
+  const out: Issue[] = [];
+  const add = (level: Issue['level'], msg: string) => out.push({ level, vehicle: s.id, msg });
+  const top = files.filter((f) => f.view === 'top'), side = files.filter((f) => f.view === 'side');
+  const len = (f: PointsFile) => (f.marks_m.hull_front && f.marks_m.hull_rear ? f.marks_m.hull_front[0] - f.marks_m.hull_rear[0] : NaN);
+  const hull = s.dimensions.hull_len?.value;
+  for (const f of [...top, ...side]) {
+    const L = len(f);
+    if (isFinite(L) && hull && pct(L, hull) > 3) add('warn', `${f.image} (${f.view}): marked hull length ${L.toFixed(3)} m vs ${hull} m stated (${pct(L, hull).toFixed(1)}%)`);
+  }
+  for (const a of top) for (const b of side) {
+    const La = len(a), Lb = len(b);
+    if (isFinite(La) && isFinite(Lb) && pct(Lb, La) > 3) add('error', `views disagree: hull length ${La.toFixed(3)} m on ${a.image} vs ${Lb.toFixed(3)} m on ${b.image} (${pct(Lb, La).toFixed(1)}%). Ask which image to trust.`);
+    const ref = isFinite(La) ? La : hull ?? NaN;
+    for (const k of Object.keys(a.marks_m)) {
+      if (!b.marks_m[k] || k === 'hull_front' || k === 'hull_rear') continue;
+      // compare distances from the hull front so the two images need not share an origin
+      if (!a.marks_m.hull_front || !b.marks_m.hull_front) continue;
+      const da = a.marks_m.hull_front[0] - a.marks_m[k][0], db = b.marks_m.hull_front[0] - b.marks_m[k][0];
+      if (Math.abs(da - db) > 0.03 * ref) add('error', `views disagree on ${k}: ${da.toFixed(3)} m from the hull front on ${a.image}, ${db.toFixed(3)} m on ${b.image}. Ask which image to trust.`);
+    }
+  }
+  const h = s.dimensions.height?.value;
+  for (const f of side) {
+    const g = f.marks_m.ground, tt = f.marks_m.turret_top ?? f.marks_m.top;
+    if (g && tt && h) { const H = g[1] - tt[1]; if (pct(H, h) > 3) add('error', `${f.image}: marked height ${H.toFixed(3)} m vs ${h} m stated (${pct(H, h).toFixed(1)}%)`); }
+  }
+  return out;
 }
 
 export function confSummary(s: VehicleSheet) { return confCounts(s); }

@@ -33,9 +33,38 @@ export function anchors(def: SpriteDef): Anchor[] {
     });
   }
   const m = measure(def);
+  out.push({ id: 'hull_front', at: [m.hullBox.x1, 0], conf: undefined }, { id: 'hull_rear', at: [m.hullBox.x0, 0], conf: undefined });
   if (m.pivot) out.push({ id: 'turret_pivot', at: m.pivot, conf: undefined });
   if (m.muzzle) out.push({ id: 'muzzle', at: m.muzzle, conf: def.parts.find((p) => p.id === 'barrel')?.conf });
   return out;
+}
+
+/**
+ * Side-view anchors: x positions only (distance from the hull front is what a side view can confirm), plus
+ * ground and turret_top for the height, which have no sprite counterpart and are only read out.
+ */
+export function sideAnchors(def: SpriteDef): Anchor[] {
+  const keep = (a: Anchor) => ['hull_front', 'hull_rear', 'turret_pivot', 'muzzle'].includes(a.id) || /^(bore_evacuator|fume_extractor|muzzle_brake|road_wheels#)/.test(a.id);
+  const top = anchors(def).filter(keep).filter((a) => !a.id.startsWith('road_wheels#') || a.at[1] > 0);
+  return [...top, { id: 'ground', at: [NaN, NaN], conf: undefined }, { id: 'turret_top', at: [NaN, NaN], conf: undefined }];
+}
+
+/** Side view: error of each anchor's distance from the hull front; height from ground to turret_top. */
+export function compareSide(def: SpriteDef, marks: Record<string, Pt>): { parts: PartError[]; heightM: number; failures: string[] } {
+  const parts: PartError[] = [];
+  const front = marks.hull_front;
+  const hullFront = measure(def).hullBox.x1;
+  if (front) for (const a of sideAnchors(def)) {
+    const mk = marks[a.id];
+    if (!mk || a.id === 'hull_front' || !isFinite(a.at[0])) continue;
+    const errCm = Math.abs((front[0] - mk[0]) - (hullFront - a.at[0])) * 100;
+    const counted = a.conf === 'A' || a.conf === 'B';
+    parts.push({ id: a.id, conf: a.conf, errCm, counted, pass: errCm <= THRESHOLDS.partCm });
+  }
+  const heightM = marks.ground && marks.turret_top ? marks.ground[1] - marks.turret_top[1] : NaN;
+  const failures = parts.filter((p) => p.counted && !p.pass).map((p) => `${p.id}: ${p.errCm.toFixed(1)} cm > ${THRESHOLDS.partCm} cm`);
+  if (!front) failures.push('mark hull_front first: side-view positions are measured from it');
+  return { parts, heightM, failures };
 }
 
 interface Grid { w: number; h: number; x0: number; y0: number }
@@ -162,26 +191,4 @@ export function compare(def: SpriteDef, mask: (CanvasImageSource & { width: numb
   }
   for (const p of parts) if (p.counted && !p.pass) failures.push(`${p.id}: ${p.errCm.toFixed(1)} cm > ${THRESHOLDS.partCm} cm`);
   return { iou, meanCm, maxCm, parts, pass, failures };
-}
-
-/** Silhouette similarity of two sprites at a thumbnail size (both centred, heading 0, same px/m). */
-export function thumbSimilarity(a: SpriteDef, b: SpriteDef, size = 64): number {
-  const ma = measure(a), mb = measure(b);
-  const L = Math.max(ma.overallBox.x1 - ma.overallBox.x0, mb.overallBox.x1 - mb.overallBox.x0);
-  const ppm = size / (L * 1.05);
-  const render = (d: SpriteDef, ob: typeof ma.overallBox) => {
-    const c = document.createElement('canvas');
-    c.width = size; c.height = size;
-    const ctx = c.getContext('2d', { willReadFrequently: true })!;
-    ctx.setTransform(ppm, 0, 0, ppm, size / 2 - ((ob.x0 + ob.x1) / 2) * ppm, size / 2 - ((ob.y0 + ob.y1) / 2) * ppm);
-    drawSprite(ctx, compile(d), { heading: 0, turret: 0, rotor: 0, recoil: 0, trackR: 0, trackL: 0, damage: 0, seed: 1, num: '', ppm, silhouette: '#000', layers: { markings: false, damage: false } });
-    const px = ctx.getImageData(0, 0, size, size).data;
-    const m = new Uint8Array(size * size);
-    for (let i = 0; i < m.length; i++) m[i] = px[i * 4 + 3] > 127 ? 1 : 0;
-    return m;
-  };
-  const A = render(a, ma.overallBox), B = render(b, mb.overallBox);
-  let inter = 0, uni = 0;
-  for (let i = 0; i < A.length; i++) { inter += A[i] & B[i]; uni += A[i] | B[i]; }
-  return uni ? inter / uni : 0;
 }

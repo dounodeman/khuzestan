@@ -27,8 +27,19 @@ refs/<id>/ images (git-ignored) --Sprite Lab: calibrate, mask, mark--> data/vehi
   Measure at heading 0: comparison works in the hull frame.
 - **Weak-data markers** (lab toggle, `?weak=1`): dashed boxes on conf C (magenta) and X (red) parts, diamonds on
   weak outline points.
-- `node tools/lab-selftest.cjs` checks the compare maths against a synthetic reference made from the sprite's own
-  silhouette shifted by 0, 5 and 12 cm (no real reference involved).
+- **Side views**: a reference whose file name starts with `side` gets side-view marks (hull_front, hull_rear,
+  turret_pivot, muzzle, fittings, road wheels, ground, turret_top). Positions are compared as distances from the
+  hull front; `check-sheets` cross-checks top against side marks (3%) and the marked height against
+  `dimensions.height`.
+- **Reference intake**: `npm run refs-inventory` lists every vehicle's images by view (from the file name:
+  `top`, `side`, `rear`, `front`, `detail-<what>`), the missing required views and any unclear names.
+- **Report**: `npm run vehicle-report -- <id>` (dev server running) collects saved compare results and the 64 px
+  confusability check, saves screenshots to `refs/<id>/report/` and writes `docs/vehicle_reports/<id>.md`.
+- **Contact sheet** shows every vehicle at one scale: sheet-generated sprites, and the legacy game sprite (red
+  label) where no sheet exists yet, with game-zoom renders underneath.
+- Self-tests: `npm run check-sheets:selftest` (validator catches 20 deliberate breakages per sheet and the
+  top/side cross-check) and `npm run lab-selftest` (compare maths on a synthetic shifted silhouette and side marks).
+- Requirement-by-requirement status: `docs/pipeline_traceability.md`.
 
 ## Sprite data
 
