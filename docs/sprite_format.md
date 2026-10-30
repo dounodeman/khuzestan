@@ -52,6 +52,8 @@ None of these is imported by the game or included in `npm run build`.
   also downloads SAM weights into `tools/vision/weights/`. Both folders are git-ignored. SAM 3.1 weights are gated on
   Hugging Face (request access, then `tools/vision/.venv/bin/hf auth login`). `npm run vision-check` runs a smoke
   test on synthetic images only.
+  `tools/vision/wheel_line.py <refs/<id>/<image>.wheel-line.json>` measures positions along a vehicle's side from a
+  three-quarter photo, using the equal road-wheel diameters to correct the perspective (results are conf C).
 - **Node**: Playwright is the copy pre-installed in the environment (do not install another). `pixelmatch` and
   `pngjs` are devDependencies; `npm run pixel-diff -- a.png b.png [diff.png]` compares two renders.
 

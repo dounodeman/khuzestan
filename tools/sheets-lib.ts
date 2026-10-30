@@ -363,10 +363,12 @@ export function validate(s: VehicleSheet, refsPresent: string[] | null): Issue[]
   if (s.references.some((r) => r.later_mods_visible) && !s.excluded_details.length) warn('a reference shows later modifications but excluded_details is empty');
 
   // Reference intake.
-  const views = new Set(s.references.map((r) => r.view));
+  // A required view needs a true (non-perspective) image; perspective photos of that view are named but do not count.
+  const views = new Set(s.references.filter((r) => !r.perspective).map((r) => r.view));
+  const photoViews = new Set(s.references.filter((r) => r.perspective).map((r) => r.view));
   const need = s.kind === 'heli' || s.kind === 'drone' ? ['top', 'side'] : ['top', 'side', 'rear'];
-  const missing = need.filter((v) => !views.has(v as never) && !(v === 'rear' && s.references.some((r) => r.view === 'detail' && /deck/i.test(r.detail_of ?? ''))));
-  if (missing.length) warn(`references missing required views: ${missing.join(', ')}${need.includes('rear') ? ' (rear may be an engine-deck detail)' : ''}`);
+  const missing = need.filter((v) => !views.has(v as never) && !(v === 'rear' && s.references.some((r) => !r.perspective && r.view === 'detail' && /deck/i.test(r.detail_of ?? ''))));
+  if (missing.length) warn(`references missing required views: ${missing.map((v) => (photoViews.has(v as never) ? `${v} (perspective photos only)` : v)).join(', ')}${need.includes('rear') ? ' (rear may be an engine-deck detail)' : ''}`);
   if (s.kind === 'wheeled' && !s.references.some((r) => r.view === 'side' && !r.perspective)) warn('wheeled vehicle: needs a non-perspective side view for axle positions');
   if (refsPresent) {
     for (const r of s.references) if (!refsPresent.includes(r.file)) warn(`reference ${r.file} is listed but not in refs/${s.id}/ on this machine`);
