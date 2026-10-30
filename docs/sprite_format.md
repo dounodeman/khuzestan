@@ -41,6 +41,20 @@ refs/<id>/ images (git-ignored) --Sprite Lab: calibrate, mask, mark--> data/vehi
   top/side cross-check) and `npm run lab-selftest` (compare maths on a synthetic shifted silhouette and side marks).
 - Requirement-by-requirement status: `docs/pipeline_traceability.md`.
 
+### Image-analysis tools (dev only)
+
+None of these is imported by the game or included in `npm run build`.
+
+- **Python** (`tools/vision/`): OpenCV (perspective correction, contours, Hough circles), scikit-image (contour
+  and circle extraction, mask clean-up), Shapely (polygon IoU and outline distance), pixelmatch, PyTorch, and
+  Segment Anything: SAM 2.1 for point/box-prompted masks on CPU, and the SAM 3.1 code (current release,
+  text-prompted, GPU-oriented). `npm run vision-setup` builds `tools/vision/.venv`; `tools/vision/setup.sh --weights`
+  also downloads SAM weights into `tools/vision/weights/`. Both folders are git-ignored. SAM 3.1 weights are gated on
+  Hugging Face (request access, then `tools/vision/.venv/bin/hf auth login`). `npm run vision-check` runs a smoke
+  test on synthetic images only.
+- **Node**: Playwright is the copy pre-installed in the environment (do not install another). `pixelmatch` and
+  `pngjs` are devDependencies; `npm run pixel-diff -- a.png b.png [diff.png]` compares two renders.
+
 ## Sprite data
 
 Generated sprite data (`SpriteDef`) is drawn by one generic renderer in `src/render/vector/`. There are no
