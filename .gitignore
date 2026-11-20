@@ -1,3 +1,5 @@
 node_modules
 dist
 *.log
+# Source photos for tools/photo-sprites (download them from the pages listed in src/assets/tanks/CREDITS.md)
+tools/photo-sprites/photos/
