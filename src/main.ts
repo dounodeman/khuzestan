@@ -2,6 +2,7 @@ import './style.css';
 import { applyTokens } from './ui/theme/tokens';
 import { loadFonts } from './ui/theme/fonts';
 import { installTextures } from './ui/theme/textures';
+import { preloadPhotoSprites } from './render/photoSprites';
 import { initSettings } from './ui/settings';
 import { unlockAudio } from './audio/sound';
 import { Rng } from './core/rng';
@@ -70,6 +71,7 @@ function quickStart(q: URLSearchParams) {
 
 async function boot() {
   applyTokens('iraq');
+  preloadPhotoSprites();
   installTextures();
   initSettings();
   await loadFonts();

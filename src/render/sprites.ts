@@ -2,6 +2,7 @@ import { SPRITE_SCALE, TEAM_COLORS } from '../core/constants';
 import type { FactionId, UnitDef } from '../data/units/types';
 import type { Unit } from '../sim/entity';
 import { drawNato } from './nato';
+import { drawPhotoTank } from './photoSprites';
 import { TOKENS, FONTS } from '../ui/theme/tokens';
 
 /**
@@ -200,6 +201,7 @@ function drawTurret(ctx: CanvasRenderingContext2D, u: Unit, p: Paint, f: SpriteF
 }
 
 function drawTank(ctx: CanvasRenderingContext2D, u: Unit, f: SpriteFlags) {
+  if (drawPhotoTank(ctx, u)) return;
   const s = u.def.sprite, p = paintFor(u.def);
   const L = s.length, W = s.width;
   // Soft drop shadow
@@ -338,6 +340,10 @@ function drawWreckBody(ctx: CanvasRenderingContext2D, u: Unit) {
     return;
   }
   if (s.kind === 'infantry') return;
+  if (s.kind === 'tank' && drawPhotoTank(ctx, u, {
+    wreck: true,
+    turretAskew: { x: (rnd(u.id, 9) - 0.5) * 1.0, y: (rnd(u.id, 10) - 0.5) * 0.8, a: (rnd(u.id, 11) - 0.5) * 1.6 },
+  })) return;
   ctx.fillStyle = 'rgba(0,0,0,0.3)'; rrect(ctx, -L / 2 + 0.2, -W / 2 + 0.25, L, W, 0.4); ctx.fill();
   ctx.fillStyle = '#26241f'; rrect(ctx, -L / 2, -W / 2, L, W, 0.35); ctx.fill();
   ctx.fillStyle = '#3a342b'; rrect(ctx, -L / 2 + 0.3, -W * 0.33, L - 0.8, W * 0.66, 0.3); ctx.fill();
