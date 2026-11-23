@@ -4,6 +4,7 @@ usage: infantry.py configs/infantry.json OUT_DIR
 
 config: {"px_per_m": output pixels per metre,
          "figures": [{"name", "src", "rect": [x0, y0, x1, y1] around one man,
+                      "poly": optional [[x, y], ...] outline of the man (else GrabCut),
                       "kind": "stand" | "prone", "rotate": degrees clockwise so his head points right
                       (the game's forward), "len_m": his length in metres along that axis,
                       "factions": {"iran": "as_is" | "tone", "iraq": "as_is" | "tone"}}],
@@ -21,15 +22,18 @@ ppm = cfg['px_per_m']
 tones = cfg.get('tones', {})
 
 
-def cut(img, rect):
+def cut(img, rect, poly=None):
+    """Mask the man: a hand-traced outline when the config gives one (`poly`), otherwise GrabCut on
+    the whole photo (plenty of background to learn from). Then crop to `rect`."""
     x0, y0, x1, y1 = rect
-    pad = 12
-    X0, Y0 = max(0, x0 - pad), max(0, y0 - pad)
-    X1, Y1 = min(img.shape[1], x1 + pad), min(img.shape[0], y1 + pad)
-    crop = img[Y0:Y1, X0:X1].copy()
-    mask = np.zeros(crop.shape[:2], np.uint8)
+    if poly:
+        fg = np.zeros(img.shape[:2], np.uint8)
+        cv2.fillPoly(fg, [np.int32(poly)], 255, lineType=cv2.LINE_AA)
+        fg = cv2.GaussianBlur(fg, (5, 5), 1.2)
+        return np.dstack([img, fg])[y0:y1, x0:x1].copy()
+    mask = np.zeros(img.shape[:2], np.uint8)
     bgd, fgd = np.zeros((1, 65), np.float64), np.zeros((1, 65), np.float64)
-    cv2.grabCut(crop, mask, (x0 - X0, y0 - Y0, x1 - x0, y1 - y0), bgd, fgd, 8, cv2.GC_INIT_WITH_RECT)
+    cv2.grabCut(img, mask, (x0, y0, x1 - x0, y1 - y0), bgd, fgd, 8, cv2.GC_INIT_WITH_RECT)
     fg = np.where((mask == cv2.GC_FGD) | (mask == cv2.GC_PR_FGD), 255, 0).astype(np.uint8)
     # keep the largest blob (the man), close small holes, soften the edge
     n, lab, stats, _ = cv2.connectedComponentsWithStats(fg)
@@ -38,7 +42,7 @@ def cut(img, rect):
         fg = np.where(lab == big, 255, 0).astype(np.uint8)
     fg = cv2.morphologyEx(fg, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
     fg = cv2.GaussianBlur(fg, (3, 3), 0.8)
-    return np.dstack([crop, fg])
+    return np.dstack([img, fg])[y0:y1, x0:x1].copy()
 
 
 def rotate(rgba, deg):
@@ -66,7 +70,7 @@ def tone(rgba, rgb):
 
 for fig in cfg['figures']:
     img = cv2.imread(fig['src'])
-    rgba = trim(rotate(cut(img, fig['rect']), fig.get('rotate', 90)))
+    rgba = trim(rotate(cut(img, fig['rect'], fig.get('poly')), fig.get('rotate', 90)))
     k = fig['len_m'] * ppm / rgba.shape[1]
     rgba = cv2.resize(rgba, None, fx=k, fy=k, interpolation=cv2.INTER_AREA)
     a = rgba[..., 3].astype(np.float32)

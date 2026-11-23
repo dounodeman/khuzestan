@@ -464,7 +464,7 @@ function drawInfantry(ctx: CanvasRenderingContext2D, u: Unit, f: SpriteFlags) {
     ctx.translate(x, y); ctx.rotate(face);
     const photo = photoSoldier(u.def.faction, prone, rnd(u.id, i + 40));
     if (photo) { // real soldier photo; the man's weapon is part of the picture
-      drawPhotoSoldier(ctx, photo, scale * 0.75);
+      drawPhotoSoldier(ctx, photo, scale * 0.9);
       ctx.restore();
       continue;
     }
