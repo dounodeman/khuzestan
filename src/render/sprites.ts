@@ -2,6 +2,7 @@ import { SPRITE_SCALE, TEAM_COLORS } from '../core/constants';
 import type { FactionId, UnitDef } from '../data/units/types';
 import type { Unit } from '../sim/entity';
 import { drawNato } from './nato';
+import { photoSoldier, drawPhotoSoldier } from './photoInfantry';
 import { TOKENS, FONTS } from '../ui/theme/tokens';
 
 /**
@@ -461,6 +462,12 @@ function drawInfantry(ctx: CanvasRenderingContext2D, u: Unit, f: SpriteFlags) {
     const x = lx * cos - ly * sin, y = lx * sin + ly * cos;
     ctx.save();
     ctx.translate(x, y); ctx.rotate(face);
+    const photo = photoSoldier(u.def.faction, prone, rnd(u.id, i + 40));
+    if (photo) { // real soldier photo; the man's weapon is part of the picture
+      drawPhotoSoldier(ctx, photo, scale * 0.9);
+      ctx.restore();
+      continue;
+    }
     ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(0.12, 0.12, 0.5, 0.42, 0, 0, 6.3); ctx.fill();
     // weapon
     ctx.strokeStyle = '#25251f'; ctx.lineWidth = 0.14; ctx.lineCap = 'round';
