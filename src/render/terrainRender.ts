@@ -3,6 +3,7 @@ import { T, TERRAIN } from '../data/terrain';
 import { vnoise } from '../sim/mapgen';
 import type { TileMap } from '../sim/map';
 import type { Camera } from '../core/camera';
+import { drawPhotoRoof } from './photoBuildings';
 
 const PX = 10; // pixels per tile in the cached base layer
 
@@ -221,6 +222,15 @@ export class TerrainRenderer {
     // Drop shadow
     ctx.fillStyle = 'rgba(40,30,10,0.3)';
     ctx.fillRect(sx + s * 0.1, sy + s * 0.1, s, s);
+    // Real roof photo when loaded (detail zoom only: at far zoom a flat tone reads better)
+    if (detail && drawPhotoRoof(ctx, sx, sy, s, this.rnd(tx, ty, 2), this.rnd(tx, ty, 3))) {
+      if (hp < 0.6) { // scorch and cracks as the building takes damage
+        ctx.fillStyle = `rgba(30,22,12,${((0.6 - hp) * 0.9).toFixed(2)})`; ctx.fillRect(sx, sy, s + 0.5, s + 0.5);
+        ctx.strokeStyle = 'rgba(30,20,10,0.8)'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.moveTo(sx + s * 0.2, sy + s * 0.1); ctx.lineTo(sx + s * 0.5, sy + s * 0.5); ctx.lineTo(sx + s * 0.4, sy + s * 0.9); ctx.stroke();
+      }
+      return;
+    }
     ctx.fillStyle = base;
     ctx.fillRect(sx, sy, s + 0.5, s + 0.5);
     if (detail) {
